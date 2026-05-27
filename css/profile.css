@@ -1,0 +1,209 @@
+.profile-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 24px;
+}
+
+.avatar {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: var(--text);
+    color: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.profile-info h2 {
+    font-size: 17px;
+    margin-bottom: 2px;
+}
+
+.profile-info p {
+    font-size: 13px;
+}
+
+.settings-list {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+
+.settings-row {
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s ease;
+    text-align: left;
+}
+
+.settings-row:last-child {
+    border-bottom: none;
+}
+
+.settings-row:active {
+    background: var(--surface-2);
+}
+
+.settings-row:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.settings-row.static {
+    cursor: default;
+}
+
+.settings-row.static:active {
+    background: none;
+}
+
+.settings-row.danger {
+    color: var(--danger);
+}
+
+.right-clamp {
+    max-width: 60%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Сетевой пилл (онлайн/офлайн) */
+.net-pill {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 10px;
+    border-radius: 999px;
+    background: rgba(22, 163, 74, 0.12);
+    color: var(--success);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+body.is-offline .net-pill {
+    background: rgba(217, 119, 6, 0.15);
+    color: var(--warning);
+}
+
+body.is-offline .net-pill::after { content: " · кэш"; }
+
+/* QR-карточка */
+.qr-card {
+    margin-top: 22px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+}
+
+.qr-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 14px;
+}
+
+.qr-hint {
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-muted);
+    margin-bottom: 14px;
+}
+
+.qr-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.qr-btn {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 44px;
+    padding: 0 16px;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s ease, transform 0.1s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.qr-btn:active { transform: scale(0.97); }
+
+.qr-btn.primary {
+    background: var(--text);
+    color: var(--bg);
+}
+
+.qr-btn.ghost {
+    background: var(--surface-2);
+    color: var(--text);
+}
+
+.qr-btn.danger {
+    background: var(--surface-2);
+    color: var(--danger);
+}
+
+/* Заполненное состояние */
+.qr-filled.hidden { display: none; }
+.qr-empty.hidden  { display: none; }
+
+.qr-image {
+    width: 200px;
+    height: 200px;
+    margin: 0 auto 14px;
+    background: white;
+    border-radius: var(--radius-sm);
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.qr-image svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+    image-rendering: pixelated;
+    shape-rendering: crispEdges;
+}
+
+.qr-data {
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 12px;
+    color: var(--text);
+    background: var(--surface-2);
+    padding: 8px 12px;
+    border-radius: var(--radius-sm);
+    text-align: center;
+    margin-bottom: 12px;
+    word-break: break-all;
+    user-select: text;
+}

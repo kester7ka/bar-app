@@ -1,0 +1,288 @@
+:root {
+    --bg: #fafafa;
+    --surface: #ffffff;
+    --surface-2: #f4f4f5;
+    --border: #ececef;
+    --text: #18181b;
+    --text-muted: #71717a;
+    --accent: #18181b;
+    --accent-soft: #f4f4f5;
+    --danger: #dc2626;
+    --warning: #d97706;
+    --success: #16a34a;
+    --radius: 14px;
+    --radius-sm: 10px;
+    --shadow: 0 1px 2px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.04);
+    --nav-h: 68px;
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+[data-theme="dark"] {
+    --bg: #0a0a0a;
+    --surface: #161618;
+    --surface-2: #1f1f23;
+    --border: #2a2a2e;
+    --text: #fafafa;
+    --text-muted: #a1a1aa;
+    --accent: #fafafa;
+    --accent-soft: #1f1f23;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 4px 12px rgba(0,0,0,0.2);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+    height: 100%;
+    overflow: hidden;
+    /* запрещаем pinch-zoom на iOS */
+    touch-action: pan-y;
+    -ms-touch-action: pan-y;
+    /* убираем выделение текста по long-press, как в нативе */
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    overscroll-behavior: contain;
+}
+
+/* В полях ввода выделение разрешаем, иначе нельзя править текст */
+input, textarea {
+    -webkit-user-select: text;
+    user-select: text;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 15px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+}
+
+.app {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    max-width: 480px;
+    margin: 0 auto;
+    background: var(--bg);
+    position: relative;
+}
+
+.screen {
+    display: none;
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: calc(var(--nav-h) + var(--safe-bottom) + 16px);
+    -webkit-overflow-scrolling: touch;
+}
+
+.screen.active {
+    display: block;
+}
+
+.container {
+    padding: 24px 20px 8px;
+}
+
+.screen-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.screen-header h1 {
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+h2 {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+}
+
+.muted {
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* По умолчанию подсказки/блоки «только для печенья» скрыты —
+   модуль положений показывает их, когда выбрана категория cookies. */
+.show-for-cookies {
+    display: none;
+}
+
+.show-for-cookies.visible {
+    display: block;
+}
+
+.cookies-hint {
+    background: var(--surface-2);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+/* ---- Блок-поворот для альбома на телефонах ---- */
+.rotate-prompt {
+    display: none;
+}
+
+/* Активируется только когда устройство явно компактное и в альбоме —
+   на десктопе и планшетах не сработает. */
+@media (orientation: landscape) and (max-height: 500px) {
+    .rotate-prompt {
+        display: flex;
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        background: var(--bg);
+        color: var(--text);
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        padding: 24px;
+        text-align: center;
+    }
+
+    .rotate-prompt .rotate-icon {
+        color: var(--text-muted);
+        animation: rotate-hint 2.4s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+    }
+
+    .rotate-prompt h2 {
+        font-size: 18px;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+    }
+
+    .rotate-prompt p {
+        font-size: 13px;
+        color: var(--text-muted);
+        line-height: 1.5;
+        max-width: 280px;
+    }
+
+    .app {
+        display: none !important;
+    }
+
+    @keyframes rotate-hint {
+        0%, 30%   { transform: rotate(0deg); }
+        60%, 100% { transform: rotate(-90deg); }
+    }
+}
+
+.empty-text {
+    color: var(--text-muted);
+    font-size: 14px;
+    padding: 12px 4px;
+}
+
+.btn-icon {
+    width: 38px;
+    height: 38px;
+    border: none;
+    background: var(--surface-2);
+    color: var(--text);
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.btn-icon:active {
+    transform: scale(0.92);
+}
+
+.btn-primary {
+    width: 100%;
+    height: 50px;
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    border-radius: var(--radius);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.btn-primary:active {
+    transform: scale(0.98);
+    opacity: 0.9;
+}
+
+.btn-ghost {
+    height: 44px;
+    padding: 0 14px;
+    background: var(--surface-2);
+    color: var(--text);
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.btn-ghost:active {
+    transform: scale(0.97);
+}
+
+.toast {
+    position: fixed;
+    bottom: calc(var(--nav-h) + 24px + var(--safe-bottom));
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--text);
+    color: var(--bg);
+    padding: 10px 18px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 500;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    /* Поверх ВСЕГО:
+         bottom-nav (100), оверлей графика/календаря/статуса (250),
+         оверлей авторизации (500), модалки (600). */
+    z-index: 9999;
+    white-space: nowrap;
+    max-width: calc(100vw - 32px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+/* Скрываем скроллбар, но оставляем функциональность */
+.screen::-webkit-scrollbar {
+    width: 0;
+    background: transparent;
+}

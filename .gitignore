@@ -1,0 +1,39 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.venv/
+venv/
+env/
+.pip-cache/
+
+# ---- БД и пользовательские данные ----
+# Содержит пароли (pbkdf2), токены, ключи регистрации, позиции.
+# Никогда НЕ должно попадать в публичный репозиторий.
+backend/bar.db
+backend/bar.db-journal
+backend/bar.db-wal
+backend/bar.db-shm
+
+# ---- Временные xlsx-дампы при отладке ----
+backend/schedule.xlsx
+backend/_xlsx_dump/
+
+# ---- IDE / OS ----
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---- Логи ----
+*.log
+logs/
+
+# ---- Локальные настройки запуска ----
+.env
+.env.local
+backend/.env
+backend/.env.local

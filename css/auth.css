@@ -1,0 +1,300 @@
+/* Оверлей авторизации поверх всего приложения */
+.auth-overlay {
+    background: var(--bg);
+    z-index: 500;
+    display: none;
+    overflow-y: auto;
+}
+
+.auth-overlay.show {
+    display: block;
+}
+
+body.locked {
+    overflow: hidden;
+}
+
+.auth-wrap {
+    max-width: 420px;
+    margin: 0 auto;
+    padding: 56px 22px calc(40px + var(--safe-bottom));
+    min-height: 100%;
+}
+
+.auth-logo {
+    width: 64px;
+    height: 64px;
+    border-radius: 18px;
+    background: var(--text);
+    color: var(--bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    margin: 0 auto 18px;
+}
+
+.auth-title {
+    text-align: center;
+    font-size: 24px;
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    margin-bottom: 6px;
+}
+
+.auth-sub {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 13px;
+    margin-bottom: 28px;
+    line-height: 1.45;
+}
+
+.auth-tabs {
+    display: flex;
+    background: var(--surface-2);
+    border-radius: 12px;
+    padding: 4px;
+    margin-bottom: 18px;
+    gap: 4px;
+}
+
+.auth-tab {
+    flex: 1;
+    height: 36px;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 9px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.auth-tab.active {
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+.auth-error {
+    background: rgba(220, 38, 38, 0.08);
+    border: 1px solid rgba(220, 38, 38, 0.2);
+    color: var(--danger);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 13px;
+    margin-bottom: 14px;
+    display: none;
+}
+
+.auth-error.show {
+    display: block;
+}
+
+.auth-form {
+    display: none;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.auth-form.active {
+    display: flex;
+}
+
+.auth-form input {
+    height: 48px;
+    padding: 0 14px;
+    background: var(--surface-2);
+    border: 1px solid transparent;
+    border-radius: 12px;
+    font-size: 15px;
+    color: var(--text);
+    outline: none;
+    font-family: inherit;
+    -webkit-appearance: none;
+    appearance: none;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.auth-form input:focus {
+    border-color: var(--text);
+    background: var(--surface);
+}
+
+.auth-form input[name="key"] {
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 18px;
+    letter-spacing: 0.25em;
+    text-align: center;
+}
+
+/* ---- Пароль с кнопкой «глаз» ---- */
+.password-input {
+    position: relative;
+}
+
+.password-input input {
+    padding-right: 46px !important;
+    width: 100%;
+}
+
+.password-toggle {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 38px;
+    height: 38px;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    transition: color 0.15s ease, background 0.15s ease;
+}
+
+.password-toggle:active {
+    background: var(--surface-2);
+}
+
+.password-toggle.visible {
+    color: var(--text);
+}
+
+.password-toggle .eye-hide { display: none; }
+.password-toggle.visible .eye-show { display: none; }
+.password-toggle.visible .eye-hide { display: inline-block; }
+
+/* ---- Кастомный чекбокс политики ---- */
+.policy-check {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 0 4px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-muted);
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.policy-check input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+    width: 1px;
+    height: 1px;
+}
+
+.policy-box {
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+    border-radius: 6px;
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    position: relative;
+    margin-top: 1px;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+}
+
+.policy-check:active .policy-box {
+    transform: scale(0.92);
+}
+
+.policy-check input:checked ~ .policy-box {
+    background: var(--text);
+    border-color: var(--text);
+}
+
+.policy-check input:checked ~ .policy-box::after {
+    content: "";
+    position: absolute;
+    left: 6px;
+    top: 2px;
+    width: 6px;
+    height: 11px;
+    border: solid var(--bg);
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+.policy-check input:focus-visible ~ .policy-box {
+    box-shadow: 0 0 0 3px rgba(24, 24, 27, 0.12);
+}
+
+.policy-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.policy-text a {
+    color: var(--text);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    font-weight: 500;
+}
+
+.auth-form .btn-primary {
+    margin-top: 6px;
+}
+
+.auth-foot {
+    margin-top: 22px;
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: center;
+    line-height: 1.5;
+}
+
+/* Содержимое политики */
+.policy-body {
+    gap: 12px;
+}
+
+.policy-intro {
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.55;
+}
+
+.policy-section {
+    background: var(--surface-2);
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+}
+
+.policy-section h3 {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 8px;
+    letter-spacing: -0.01em;
+}
+
+.policy-section p,
+.policy-section li {
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--text-muted);
+}
+
+.policy-section ul {
+    padding-left: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.policy-section b {
+    color: var(--text);
+    font-weight: 600;
+}

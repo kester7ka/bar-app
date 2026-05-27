@@ -1,0 +1,74 @@
+/* Карточка «Что нового» на главной.
+   Видна один раз для каждой версии — после × ставится флаг в localStorage. */
+
+.news-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px 18px;
+    margin-top: 4px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow);
+}
+
+.news-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.news-version {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--bg);
+    background: var(--text);
+    padding: 3px 9px;
+    border-radius: 999px;
+    letter-spacing: 0.06em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+}
+
+.news-title {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    color: var(--text);
+}
+
+
+.news-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.news-list li {
+    position: relative;
+    padding-left: 18px;
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--text);
+    letter-spacing: -0.005em;
+}
+
+.news-list li::before {
+    content: "";
+    position: absolute;
+    left: 4px;
+    top: 9px;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--text-muted);
+}
+
+.news-list b {
+    font-weight: 600;
+    color: var(--text);
+}

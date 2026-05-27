@@ -1,0 +1,243 @@
+.home-header {
+    margin-bottom: 18px;
+}
+
+/* ---- Часы + погода ---- */
+.weather-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    margin-bottom: 22px;
+}
+
+.wc-left {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1;
+}
+
+.wc-clock {
+    font-size: 30px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+}
+
+.wc-date {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    text-transform: capitalize;
+}
+
+.wc-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.wc-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text);
+}
+
+.wc-icon svg {
+    display: block;
+}
+
+.wc-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+.wc-temp {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+
+.wc-cond {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 3px;
+    text-align: right;
+}
+
+.weather-card.offline .wc-temp,
+.weather-card.offline .wc-icon {
+    opacity: 0.35;
+}
+
+.greeting {
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    line-height: 1.15;
+}
+
+.subtitle {
+    color: var(--text-muted);
+    font-size: 14px;
+    margin-top: 4px;
+    text-transform: capitalize;
+}
+
+.stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 28px;
+}
+
+.stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+}
+
+.stat-card.warning .stat-value {
+    color: var(--warning);
+}
+
+.stat-value {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+}
+
+.stat-label {
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+.section-block {
+    margin-bottom: 24px;
+}
+
+.section-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    padding: 0 2px;
+}
+
+.section-head h2 {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+}
+
+.section-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: var(--text-muted);
+    transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.section-dot.expired-dot {
+    background: var(--danger);
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
+}
+
+.section-dot.tomorrow-dot {
+    background: var(--warning);
+    box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.15);
+}
+
+.section-block.is-empty .section-dot {
+    background: var(--text-muted);
+    box-shadow: none;
+    opacity: 0.5;
+}
+
+.section-block.is-empty .section-head h2 {
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+/* Empty state карточка с «галкой все ок» */
+.section-empty {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.section-empty-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: rgba(22, 163, 74, 0.12);
+    color: var(--success);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.section-empty-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.section-empty-text {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--text);
+    line-height: 1.2;
+}
+
+.section-empty-sub {
+    margin-top: 3px;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.badge {
+    background: var(--surface-2);
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 999px;
+    min-width: 22px;
+    text-align: center;
+}
+
+.badge.danger {
+    background: rgba(220, 38, 38, 0.1);
+    color: var(--danger);
+}
+
+.badge.warning {
+    background: rgba(217, 119, 6, 0.1);
+    color: var(--warning);
+}

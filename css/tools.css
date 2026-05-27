@@ -1,0 +1,61 @@
+.tools-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+.tool-tile.wide {
+    grid-column: span 2;
+    aspect-ratio: auto;
+    flex-direction: row;
+    align-items: center;
+    gap: 14px;
+    padding: 18px 20px;
+}
+
+.tool-tile.wide .tool-icon {
+    margin-right: 4px;
+}
+
+.tool-tile.wide .tool-name {
+    font-size: 16px;
+}
+
+.tool-tile {
+    aspect-ratio: 1.2;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: flex-start;
+    cursor: pointer;
+    transition: transform 0.15s ease, background 0.15s ease;
+    color: var(--text);
+}
+
+.tool-tile:active {
+    transform: scale(0.97);
+}
+
+.tool-icon {
+    font-size: 24px;
+    width: 40px;
+    height: 40px;
+    background: var(--surface-2);
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 500;
+}
+
+.tool-name {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    text-align: left;
+}
+

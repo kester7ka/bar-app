@@ -1,0 +1,579 @@
+.modal {
+    position: fixed;
+    inset: 0;
+    z-index: 600; /* выше auth-overlay (500), чтобы политика открывалась поверх */
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+}
+
+.modal.show {
+    display: flex;
+}
+
+.modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    opacity: 0;
+    transition: opacity 0.25s ease;
+}
+
+.modal.show .modal-backdrop {
+    opacity: 1;
+}
+
+.modal-sheet {
+    position: relative;
+    width: 100%;
+    max-width: 480px;
+    max-height: 90vh;
+    background: var(--surface);
+    border-radius: 20px 20px 0 0;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.modal.show .modal-sheet {
+    transform: translateY(0);
+}
+
+.modal-handle {
+    width: 36px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 999px;
+    margin: 10px auto 0;
+    flex-shrink: 0;
+}
+
+.modal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px 8px;
+    flex-shrink: 0;
+}
+
+.modal-head h2 {
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+}
+
+.modal-body {
+    padding: 12px 20px calc(24px + var(--safe-bottom));
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.field > span {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    letter-spacing: 0.01em;
+}
+
+.field input,
+.field select {
+    height: 46px;
+    padding: 0 14px;
+    background: var(--surface-2);
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    font-size: 15px;
+    color: var(--text);
+    outline: none;
+    font-family: inherit;
+    transition: border-color 0.15s ease;
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+.field input:focus,
+.field select:focus {
+    border-color: var(--text);
+}
+
+.field select {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24'><path d='M6 9l6 6 6-6' stroke='%2371717a' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 36px;
+}
+
+/* ---- Чипы выбора категории ---- */
+.category-chips {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+}
+
+.cat-chip {
+    height: 42px;
+    padding: 0 12px;
+    background: var(--surface-2);
+    border: 1px solid transparent;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
+    font-family: inherit;
+    white-space: nowrap;
+    text-align: center;
+}
+
+.cat-chip:active {
+    transform: scale(0.97);
+}
+
+.cat-chip.active {
+    background: var(--text);
+    color: var(--bg);
+}
+
+.cat-chip:focus-visible {
+    outline: 2px solid var(--text);
+    outline-offset: 2px;
+}
+
+.cat-hint {
+    background: var(--surface-2);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-muted);
+    margin: -4px 0 0;
+}
+
+.cat-hint:empty {
+    display: none;
+}
+
+.cat-hint b {
+    color: var(--text);
+    font-weight: 600;
+}
+
+/* ---- Шаги модалки (двухшаговая форма для is_open=true) ---- */
+.modal-step {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.modal-step.hidden {
+    display: none;
+}
+
+.step-context {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    background: var(--surface-2);
+    border-radius: var(--radius-sm);
+    margin-bottom: -4px;
+}
+
+.step-name {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+    min-width: 0;
+}
+
+.step-q {
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin: 0;
+    color: var(--text);
+}
+
+.step-hint {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin: -4px 0 0;
+    line-height: 1.5;
+}
+
+.step-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+.step-actions .btn-primary {
+    flex: 1;
+}
+
+.btn-step-back {
+    flex-shrink: 0;
+    height: 50px;
+    padding: 0 20px;
+    background: var(--surface-2);
+    color: var(--text);
+    border: none;
+    border-radius: var(--radius);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.btn-step-back:active {
+    background: var(--border);
+    transform: scale(0.98);
+}
+
+.field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.field-check {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    font-size: 14px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.field-check input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--text);
+}
+
+.tob-row {
+    display: flex;
+    gap: 8px;
+}
+
+.tob-row input {
+    flex: 1;
+    text-transform: uppercase;
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    letter-spacing: 0.1em;
+}
+
+/* ---- Срок: дата + время + пресеты ---- */
+.expiry-row {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 8px;
+}
+
+.expiry-row input[type="time"] {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.04em;
+}
+
+.time-presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.time-chip {
+    height: 30px;
+    padding: 0 11px;
+    background: var(--surface-2);
+    border: 1px solid transparent;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-family: inherit;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.time-chip:active {
+    transform: scale(0.96);
+}
+
+.time-chip.active {
+    background: var(--text);
+    color: var(--bg);
+}
+
+.time-chip.primary-chip {
+    background: var(--text);
+    color: var(--bg);
+    font-weight: 600;
+}
+
+.time-chip.primary-chip:active {
+    opacity: 0.85;
+}
+
+/* ---- Превью: производство + дни → дата истечения ---- */
+.expiry-preview {
+    background: var(--surface-2);
+    border: 1px dashed transparent;
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    transition: background 0.15s ease, border-color 0.15s ease;
+    margin-top: -4px;
+}
+
+.expiry-preview.ready {
+    background: var(--surface);
+    border-color: var(--border);
+}
+
+.ep-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    flex-shrink: 0;
+}
+
+.ep-value {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    color: var(--text-muted);
+    font-size: 14px;
+    letter-spacing: -0.01em;
+    text-align: right;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.expiry-preview.ready .ep-value {
+    color: var(--text);
+}
+
+/* Детали позиции */
+.detail-section {
+    background: var(--surface-2);
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+}
+
+.detail-row .label {
+    color: var(--text-muted);
+}
+
+.detail-row .value {
+    font-weight: 500;
+    text-align: right;
+}
+
+.detail-row .value.danger {
+    color: var(--danger);
+}
+
+.detail-row .value.warning {
+    color: var(--warning);
+}
+
+.detail-row .value.muted {
+    color: var(--text-muted);
+    font-weight: 400;
+}
+
+.detail-row.big {
+    padding-top: 10px;
+    margin-top: 6px;
+    border-top: 1px solid var(--border);
+    font-size: 15px;
+}
+
+.detail-row.big .label {
+    font-weight: 600;
+    color: var(--text);
+}
+
+.detail-row.big .value {
+    font-weight: 600;
+}
+
+/* Строки сравнения сроков: победителя выделяем, проигравшего — гасим. */
+.detail-row.winner {
+    position: relative;
+}
+
+.detail-row.winner::before {
+    content: "›";
+    position: absolute;
+    left: -4px;
+    color: var(--text);
+    font-weight: 700;
+}
+
+.detail-row.winner .value {
+    color: var(--text);
+    font-weight: 600;
+}
+
+.detail-row.loser .label,
+.detail-row.loser .value {
+    color: var(--text-muted);
+    text-decoration: line-through;
+    text-decoration-color: rgba(113, 113, 122, 0.4);
+}
+
+.detail-row .sublabel {
+    display: block;
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 400;
+    margin-top: 2px;
+}
+
+.detail-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.detail-actions button {
+    flex: 1;
+    height: 46px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: transform 0.15s ease;
+}
+
+.detail-actions button:active {
+    transform: scale(0.97);
+}
+
+.detail-actions .btn-danger {
+    color: var(--danger);
+    border-color: rgba(220, 38, 38, 0.2);
+}
+
+.detail-actions .btn-success {
+    background: var(--success);
+    color: white;
+    border-color: var(--success);
+}
+
+/* О приложении */
+.about-body {
+    gap: 18px;
+}
+
+.about-hero {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 4px 0 8px;
+}
+
+.about-logo {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    background: var(--text);
+    color: var(--bg);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.about-title {
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+}
+
+.about-version {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 2px;
+    font-variant-numeric: tabular-nums;
+}
+
+.about-info {
+    background: var(--surface-2);
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.about-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+}
+
+.about-label {
+    color: var(--text-muted);
+}
+
+.about-value {
+    font-weight: 600;
+    letter-spacing: -0.01em;
+}
+
+.about-note {
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--text-muted);
+    padding: 14px 16px;
+    background: var(--surface-2);
+    border-radius: var(--radius-sm);
+}
+
+.about-note b {
+    color: var(--text);
+    font-weight: 600;
+}

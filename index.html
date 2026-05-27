@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="color-scheme" content="light dark">
+    <title>Bar Manager</title>
+
+    <!-- Применяем сохранённую тему ДО загрузки CSS, иначе на пол-секунды
+         мелькает светлая тема при перезагрузке. Этот блок специально инлайн
+         и без зависимостей — выполняется синхронно перед первым рендером. -->
+    <script>
+        (function () {
+            var dark = false;
+            try {
+                var s = JSON.parse(localStorage.getItem('bar-app:settings') || '{}');
+                dark = s && s.theme === 'dark';
+            } catch (e) {}
+            if (dark) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                document.documentElement.style.background = '#0a0a0a';
+                document.documentElement.style.colorScheme = 'dark';
+            } else {
+                document.documentElement.style.background = '#fafafa';
+                document.documentElement.style.colorScheme = 'light';
+            }
+        })();
+    </script>
+
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/home.css">
+    <link rel="stylesheet" href="css/positions.css">
+    <link rel="stylesheet" href="css/tools.css">
+    <link rel="stylesheet" href="css/profile.css">
+    <link rel="stylesheet" href="css/nav.css">
+    <link rel="stylesheet" href="css/modal.css">
+    <link rel="stylesheet" href="css/schedule.css">
+    <link rel="stylesheet" href="css/calendar.css">
+    <link rel="stylesheet" href="css/status.css">
+    <link rel="stylesheet" href="css/news.css">
+    <link rel="stylesheet" href="css/scanner.css">
+    <link rel="stylesheet" href="css/auth.css">
+</head>
+<body>
+    <!-- Заглушка для альбомной ориентации (только на телефонах) -->
+    <div class="rotate-prompt" aria-hidden="true">
+        <div class="rotate-icon">
+            <svg viewBox="0 0 24 24" width="48" height="48"><rect x="6" y="3" width="12" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="18" r="0.8" fill="currentColor"/><path d="M4 7l-2-2 2-2M2 5h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none" transform="translate(18 0)"/></svg>
+        </div>
+        <h2>Поверни телефон</h2>
+        <p>Bar Manager работает только в вертикальном режиме</p>
+    </div>
+
+    <div class="app">
+        <!-- Главная -->
+        <section id="home" class="screen active">
+            <div class="container">
+                <header class="home-header">
+                    <h1 class="greeting" id="greeting">Доброе утро</h1>
+                </header>
+
+                <div class="weather-card" id="weather-card">
+                    <div class="wc-left">
+                        <span class="wc-clock" id="wc-clock">—</span>
+                        <span class="wc-date" id="wc-date"></span>
+                    </div>
+                    <div class="wc-right">
+                        <span class="wc-icon" id="wc-icon"></span>
+                        <div class="wc-info">
+                            <span class="wc-temp" id="wc-temp">—</span>
+                            <span class="wc-cond" id="wc-cond">погода</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stats-row">
+                    <div class="stat-card">
+                        <span class="stat-value" id="stat-total">0</span>
+                        <span class="stat-label">всего</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value" id="stat-open">0</span>
+                        <span class="stat-label">открыто</span>
+                    </div>
+                    <div class="stat-card warning">
+                        <span class="stat-value" id="stat-expiring">0</span>
+                        <span class="stat-label">истекает</span>
+                    </div>
+                </div>
+
+                <section class="section-block" id="section-expired">
+                    <header class="section-head">
+                        <span class="section-dot expired-dot"></span>
+                        <h2>Некондиция сегодня</h2>
+                        <span class="badge" id="badge-today">0</span>
+                    </header>
+                    <div class="cards-list" id="expiring-today"></div>
+                </section>
+
+                <section class="section-block" id="section-tomorrow">
+                    <header class="section-head">
+                        <span class="section-dot tomorrow-dot"></span>
+                        <h2>Истекает завтра</h2>
+                        <span class="badge" id="badge-tomorrow">0</span>
+                    </header>
+                    <div class="cards-list" id="expiring-tomorrow"></div>
+                </section>
+
+                <!-- «Что нового» — всегда показываем, без крестика -->
+                <div class="news-card" id="news-card">
+                    <div class="news-head">
+                        <span class="news-version">0.5.0</span>
+                        <h3 class="news-title">Что нового</h3>
+                    </div>
+                    <ul class="news-list">
+                        <li>
+                            <b>Добавление по штрихкоду</b> — рядом с «+» сверху появилась
+                            кнопка сканера. Наведи камеру на штрихкод позиции, приложение
+                            запомнит его и при повторном сканировании сразу подтянет
+                            название и TOB. Подтянутые поля можно поменять — это просто
+                            подсказка.
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Позиции -->
+        <section id="positions" class="screen">
+            <div class="container">
+                <header class="screen-header">
+                    <h1>Позиции</h1>
+                    <div class="header-actions">
+                        <button class="btn-icon" id="btn-scan-position" aria-label="Сканировать штрихкод">
+                            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+                                <path d="M4 7v10M7.5 7v10M11 7v10M14 7v10M17.5 7v10M20 7v10"/>
+                            </svg>
+                        </button>
+                        <button class="btn-icon" id="btn-add-position" aria-label="Добавить">
+                            <svg viewBox="0 0 24 24" width="22" height="22"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                        </button>
+                    </div>
+                </header>
+
+                <div class="search-bar">
+                    <input type="text" id="search-input" placeholder="Поиск по названию или TOB" autocomplete="off" spellcheck="false">
+                    <button type="button" class="search-clear" id="search-clear" aria-label="Очистить">
+                        <svg viewBox="0 0 24 24" width="16" height="16"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                    </button>
+                </div>
+
+                <div class="filter-chips" id="filter-chips">
+                    <button class="chip active" data-cat="all">Все</button>
+                    <button class="chip" data-cat="ingredients">Ингредиенты</button>
+                    <button class="chip" data-cat="syrups">Сиропы</button>
+                    <button class="chip" data-cat="cookies">Печенье</button>
+                    <button class="chip" data-cat="other">Прочее</button>
+                </div>
+
+                <div class="cards-list" id="positions-list"></div>
+            </div>
+        </section>
+
+        <!-- Инструменты -->
+        <section id="tools" class="screen">
+            <div class="container">
+                <header class="screen-header">
+                    <h1>Инструменты</h1>
+                </header>
+
+                <div class="tools-grid">
+                    <button class="tool-tile wide" data-tool="schedule">
+                        <span class="tool-icon">▦</span>
+                        <span class="tool-name">График смен</span>
+                    </button>
+                    <button class="tool-tile wide" data-tool="calendar">
+                        <span class="tool-icon">◷</span>
+                        <span class="tool-name">Календарь сроков</span>
+                    </button>
+                    <button class="tool-tile wide" data-tool="status">
+                        <span class="tool-icon">◉</span>
+                        <span class="tool-name">Статус сервисов</span>
+                    </button>
+                    <button class="tool-tile" data-tool="scan">
+                        <span class="tool-icon">⌗</span>
+                        <span class="tool-name">Найти по TOB</span>
+                    </button>
+                    <button class="tool-tile" data-tool="export">
+                        <span class="tool-icon">↓</span>
+                        <span class="tool-name">Экспорт CSV</span>
+                    </button>
+                    <button class="tool-tile" data-tool="cleanup">
+                        <span class="tool-icon">✕</span>
+                        <span class="tool-name">Убрать некондицию</span>
+                    </button>
+                    <button class="tool-tile" data-tool="categories">
+                        <span class="tool-icon">≡</span>
+                        <span class="tool-name">Категории</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Профиль -->
+        <section id="profile" class="screen">
+            <div class="container">
+                <header class="screen-header">
+                    <h1>Профиль</h1>
+                </header>
+
+                <div class="profile-card">
+                    <div class="avatar" id="profile-avatar">·</div>
+                    <div class="profile-info">
+                        <h2 id="profile-name">—</h2>
+                        <p class="muted" id="profile-username">—</p>
+                    </div>
+                </div>
+
+                <div class="settings-list">
+                    <div class="settings-row static">
+                        <span>Твой бар</span>
+                        <span class="muted right-clamp" id="profile-bar">—</span>
+                    </div>
+                    <button class="settings-row" id="btn-theme">
+                        <span>Тема</span>
+                        <span class="muted" id="theme-label">Светлая</span>
+                    </button>
+                    <button class="settings-row" id="btn-about">
+                        <span>О приложении</span>
+                        <span class="muted">›</span>
+                    </button>
+                    <button class="settings-row danger" id="btn-logout">
+                        <span>Выйти из аккаунта</span>
+                        <span class="muted">›</span>
+                    </button>
+                </div>
+
+                <!-- QR-код прихода -->
+                <section class="qr-card">
+                    <h3 class="qr-title">QR-код прихода</h3>
+
+                    <div class="qr-empty" id="qr-empty">
+                        <p class="qr-hint">
+                            Добавь свой рабочий QR-код, чтобы он был под рукой при отметке.
+                            Можешь загрузить фото — приложение распознает данные и сгенерирует код заново.
+                            Или ввести данные вручную.
+                        </p>
+                        <div class="qr-actions">
+                            <label class="qr-btn primary">
+                                Загрузить фото
+                                <input type="file" id="qr-upload" accept="image/*" capture="environment" hidden>
+                            </label>
+                            <button type="button" class="qr-btn ghost" id="qr-manual-btn">Ввести вручную</button>
+                        </div>
+                    </div>
+
+                    <div class="qr-filled hidden" id="qr-filled">
+                        <div class="qr-image" id="qr-image" aria-label="QR-код"></div>
+                        <div class="qr-data" id="qr-data"></div>
+                        <p class="qr-hint">
+                            Код перегенерирован из распознанных данных — это не оригинальное фото.
+                        </p>
+                        <div class="qr-actions">
+                            <button type="button" class="qr-btn ghost" id="qr-edit-btn">Изменить</button>
+                            <button type="button" class="qr-btn danger" id="qr-delete-btn">Удалить</button>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </section>
+
+        <!-- Нижняя навигация -->
+        <nav class="bottom-nav">
+            <button class="nav-btn active" data-screen="home">
+                <svg viewBox="0 0 24 24" width="22" height="22"><path d="M3 11l9-8 9 8v10a1 1 0 01-1 1h-5v-7h-6v7H4a1 1 0 01-1-1V11z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+                <span>Главная</span>
+            </button>
+            <button class="nav-btn" data-screen="positions">
+                <svg viewBox="0 0 24 24" width="22" height="22"><rect x="3" y="4" width="18" height="6" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="3" y="14" width="18" height="6" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+                <span>Позиции</span>
+            </button>
+            <button class="nav-btn" data-screen="tools">
+                <svg viewBox="0 0 24 24" width="22" height="22"><path d="M14.7 6.3a4 4 0 00-5.4 5.4l-6 6 2 2 6-6a4 4 0 005.4-5.4l-2.4 2.4-2-2 2.4-2.4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+                <span>Инструменты</span>
+            </button>
+            <button class="nav-btn" data-screen="profile">
+                <svg viewBox="0 0 24 24" width="22" height="22"><circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M4 21a8 8 0 0116 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                <span>Профиль</span>
+            </button>
+        </nav>
+
+        <!-- Модалка добавления / редактирования -->
+        <div class="modal" id="position-modal">
+            <div class="modal-backdrop" data-close></div>
+            <div class="modal-sheet">
+                <div class="modal-handle"></div>
+                <header class="modal-head">
+                    <h2 id="modal-title">Новая позиция</h2>
+                    <button class="btn-icon" data-close aria-label="Закрыть">
+                        <svg viewBox="0 0 24 24" width="20" height="20"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                    </button>
+                </header>
+                <form id="position-form" class="modal-body">
+                    <!-- ШАГ 1: основная форма позиции -->
+                    <div class="modal-step" data-step="1">
+                        <label class="field">
+                            <span>Название</span>
+                            <input type="text" name="name" required placeholder="Например, молоко">
+                        </label>
+
+                        <label class="field">
+                            <span>TOB</span>
+                            <div class="tob-row">
+                                <input type="text" name="tob" id="tob-input" maxlength="6" minlength="6" inputmode="numeric" pattern="\d{6}" required placeholder="6 цифр">
+                                <button type="button" class="btn-ghost" id="btn-gen-tob">Сгенерировать</button>
+                            </div>
+                        </label>
+
+                        <div class="field">
+                            <span>Категория</span>
+                            <div class="category-chips" id="category-chips" role="radiogroup" aria-label="Категория">
+                                <button type="button" class="cat-chip active" data-cat="ingredients" role="radio" aria-checked="true">Ингредиенты</button>
+                                <button type="button" class="cat-chip" data-cat="syrups"      role="radio" aria-checked="false">Сиропы</button>
+                                <button type="button" class="cat-chip" data-cat="cookies"     role="radio" aria-checked="false">Печенье</button>
+                                <button type="button" class="cat-chip" data-cat="other"       role="radio" aria-checked="false">Прочее</button>
+                            </div>
+                            <input type="hidden" name="category" value="ingredients">
+                        </div>
+
+                        <p class="cat-hint" id="cat-hint"></p>
+
+                        <div class="field">
+                            <span>Дата и время производства</span>
+                            <div class="expiry-row">
+                                <input type="date" name="production_date" id="production-date" required>
+                                <input type="time" name="production_time" id="production-time" required value="12:00">
+                            </div>
+                            <div class="time-presets" id="time-presets">
+                                <button type="button" class="time-chip" data-time="02:00">02:00 · ночь</button>
+                                <button type="button" class="time-chip" data-time="08:00">08:00</button>
+                                <button type="button" class="time-chip active" data-time="12:00">12:00</button>
+                                <button type="button" class="time-chip" data-time="18:00">18:00</button>
+                                <button type="button" class="time-chip" data-time="22:00">22:00</button>
+                                <button type="button" class="time-chip" data-time="23:59">23:59 · конец</button>
+                            </div>
+                        </div>
+
+                        <label class="field">
+                            <span>Срок годности (дней с даты производства)</span>
+                            <input type="number" name="closed_shelf_days" id="closed-shelf-days" min="1" required placeholder="напр., 30">
+                        </label>
+
+                        <div class="expiry-preview" id="expiry-preview">
+                            <span class="ep-label">→ ИСТЕКАЕТ</span>
+                            <span class="ep-value" id="ep-value">укажи дату и срок</span>
+                        </div>
+
+                        <label class="field-check hide-for-cookies">
+                            <input type="checkbox" name="is_open" id="is-open-check">
+                            <span>Сразу пометить как открытую</span>
+                        </label>
+
+                        <button type="submit" class="btn-primary" id="step1-submit">Сохранить</button>
+                    </div>
+
+                    <!-- ШАГ 2: только при is_open=true (новая позиция) -->
+                    <div class="modal-step hidden" data-step="2">
+                        <div class="step-context">
+                            <span class="tob-tag" id="step2-tob">000000</span>
+                            <span class="step-name" id="step2-name">—</span>
+                        </div>
+
+                        <h3 class="step-q">Сколько хранится после вскрытия?</h3>
+
+                        <label class="field">
+                            <span>Срок после вскрытия (дней)</span>
+                            <input type="number" id="shelf-step-input" min="1" inputmode="numeric" placeholder="напр., 3" autocomplete="off">
+                        </label>
+
+                        <p class="step-hint" id="step2-hint"></p>
+
+                        <div class="step-actions">
+                            <button type="button" class="btn-step-back" id="step2-back">Назад</button>
+                            <button type="button" class="btn-primary" id="step2-confirm">Сохранить</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Модалка деталей позиции -->
+        <div class="modal" id="detail-modal">
+            <div class="modal-backdrop" data-close></div>
+            <div class="modal-sheet">
+                <div class="modal-handle"></div>
+                <header class="modal-head">
+                    <h2 id="detail-title">Позиция</h2>
+                    <button class="btn-icon" data-close aria-label="Закрыть">
+                        <svg viewBox="0 0 24 24" width="20" height="20"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                    </button>
+                </header>
+                <div class="modal-body" id="detail-body"></div>
+            </div>
+        </div>
+
+        <!-- Оверлей входа / регистрации -->
+        <div class="overlay auth-overlay" id="auth-overlay">
+            <div class="auth-wrap">
+                <div class="auth-logo">B</div>
+                <h1 class="auth-title">Bar Manager</h1>
+                <p class="auth-sub">Чтобы зайти, нужен одноразовый ключ от руководителя точки</p>
+
+                <div class="auth-tabs">
+                    <button class="auth-tab active" data-tab="register" type="button">Регистрация</button>
+                    <button class="auth-tab" data-tab="login" type="button">Войти</button>
+                </div>
+
+                <div class="auth-error" id="auth-error"></div>
+
+                <!-- Форма регистрации -->
+                <form id="form-register" class="auth-form active" data-form="register" autocomplete="off">
+                    <label class="field">
+                        <span>Одноразовый ключ</span>
+                        <input type="text" name="key" id="reg-key" inputmode="numeric" maxlength="8" minlength="8" required placeholder="8 цифр">
+                    </label>
+                    <label class="field">
+                        <span>Никнейм</span>
+                        <input type="text" name="username" required minlength="3" maxlength="32" placeholder="как тебя называть в системе">
+                    </label>
+                    <label class="field">
+                        <span>Имя (необязательно)</span>
+                        <input type="text" name="display_name" maxlength="64" placeholder="напр., Аня">
+                    </label>
+                    <label class="field">
+                        <span>Пароль</span>
+                        <div class="password-input">
+                            <input type="password" name="password" required minlength="6" autocomplete="new-password">
+                            <button type="button" class="password-toggle" data-pwd-toggle aria-label="Показать пароль">
+                                <svg class="eye-show" viewBox="0 0 24 24" width="20" height="20"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>
+                                <svg class="eye-hide" viewBox="0 0 24 24" width="20" height="20"><path d="M2 12s3.5-7 10-7c2 0 3.7.5 5.2 1.3M22 12s-3.5 7-10 7c-2 0-3.7-.5-5.2-1.3M4 4l16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            </button>
+                        </div>
+                    </label>
+
+                    <label class="policy-check">
+                        <input type="checkbox" name="accepted_policy" required>
+                        <span class="policy-box" aria-hidden="true"></span>
+                        <span class="policy-text">
+                            Принимаю <a href="#" data-policy>условия использования</a>
+                            и согласен с обработкой никнейма и пароля.
+                        </span>
+                    </label>
+
+                    <button type="submit" class="btn-primary">Зарегистрироваться</button>
+                </form>
+
+                <!-- Форма входа -->
+                <form id="form-login" class="auth-form" data-form="login" autocomplete="off">
+                    <label class="field">
+                        <span>Никнейм</span>
+                        <input type="text" name="username" required autocomplete="username">
+                    </label>
+                    <label class="field">
+                        <span>Пароль</span>
+                        <div class="password-input">
+                            <input type="password" name="password" required autocomplete="current-password">
+                            <button type="button" class="password-toggle" data-pwd-toggle aria-label="Показать пароль">
+                                <svg class="eye-show" viewBox="0 0 24 24" width="20" height="20"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>
+                                <svg class="eye-hide" viewBox="0 0 24 24" width="20" height="20"><path d="M2 12s3.5-7 10-7c2 0 3.7.5 5.2 1.3M22 12s-3.5 7-10 7c-2 0-3.7-.5-5.2-1.3M4 4l16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            </button>
+                        </div>
+                    </label>
+                    <button type="submit" class="btn-primary">Войти</button>
+                </form>
+
+                <p class="auth-foot">
+                    Нет ключа? Попроси старшего или руководителя точки —
+                    каждый ключ привязан к конкретному бару.
+                </p>
+            </div>
+        </div>
+
+        <!-- Модалка политики -->
+        <div class="modal" id="policy-modal">
+            <div class="modal-backdrop" data-close></div>
+            <div class="modal-sheet">
+                <div class="modal-handle"></div>
+                <header class="modal-head">
+                    <h2>Условия использования</h2>
+                    <button class="btn-icon" data-close aria-label="Закрыть">
+                        <svg viewBox="0 0 24 24" width="20" height="20"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                    </button>
+                </header>
+                <div class="modal-body policy-body">
+                    <p class="policy-intro">
+                        Регистрируясь в Bar Manager, ты подтверждаешь, что прочёл эти условия
+                        и согласен с ними. Сформулированы они простыми словами — без юристов.
+                    </p>
+
+                    <section class="policy-section">
+                        <h3>1. Что это за приложение</h3>
+                        <p>
+                            Bar Manager — независимый, неофициальный проект.
+                            Он <b>не имеет никакого отношения</b> к компании «Азбука Вкуса»,
+                            её бренду, IT-инфраструктуре или каким-либо официальным сервисам.
+                            Цель приложения — помочь сотрудникам бара удобнее следить за
+                            сроками годности позиций и ориентироваться в графике смен.
+                        </p>
+                    </section>
+
+                    <section class="policy-section">
+                        <h3>2. Какие данные сохраняются</h3>
+                        <ul>
+                            <li>Никнейм и зашифрованный пароль.</li>
+                            <li>Имя, если ты решил его указать (необязательно).</li>
+                            <li>Код бара, к которому ты привязан одноразовым ключом.</li>
+                            <li>Действия в приложении: добавление и редактирование позиций,
+                                открытие и закрытие, удаление некондиции.</li>
+                        </ul>
+                    </section>
+
+                    <section class="policy-section">
+                        <h3>3. Что НЕ сохраняется</h3>
+                        <ul>
+                            <li>Паспортные данные, адрес, дата рождения.</li>
+                            <li>Геолокация, рекламные идентификаторы, телеметрия устройства.</li>
+                            <li>Любые данные, которые не нужны для работы приложения.</li>
+                        </ul>
+                    </section>
+
+                    <section class="policy-section">
+                        <h3>4. Как используются данные</h3>
+                        <p>
+                            Только для входа и для того, чтобы ты видел позиции и график
+                            именно своего бара. Никому не передаются, не продаются и не
+                            используются в рекламных целях.
+                        </p>
+                    </section>
+
+                    <section class="policy-section">
+                        <h3>5. Доступ</h3>
+                        <ul>
+                            <li>Войти можно только по одноразовому 8-значному ключу,
+                                выданному руководителем точки.</li>
+                            <li>Один ключ — одна регистрация. После использования он сгорает.</li>
+                            <li>Незарегистрированный пользователь не видит ни одной страницы
+                                приложения, кроме экрана регистрации.</li>
+                        </ul>
+                    </section>
+
+                    <section class="policy-section">
+                        <h3>6. Ответственность</h3>
+                        <ul>
+                            <li>Не передавай свой пароль и ключ третьим лицам.</li>
+                            <li>Не вноси заведомо ложные сроки годности — это влияет на
+                                других сотрудников и гостей бара.</li>
+                            <li>Расчёты заработка, отображаемые в приложении, —
+                                <b>ориентир, а не точная выплата</b>. Реальная сумма зависит
+                                от оценки смены, активных продаж, бонусов и других факторов
+                                и считается до вычета налогов.</li>
+                        </ul>
+                    </section>
+
+                    <section class="policy-section">
+                        <h3>7. Удаление аккаунта</h3>
+                        <p>
+                            Чтобы удалить аккаунт, обратись к человеку, который выдавал
+                            тебе ключ — он удалит твою запись из базы.
+                        </p>
+                    </section>
+
+                    <p class="policy-intro">
+                        Если что-то из этих пунктов тебя не устраивает — пожалуйста, не
+                        ставь галочку и не пользуйся приложением.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- О приложении -->
+        <div class="modal" id="about-modal">
+            <div class="modal-backdrop" data-close></div>
+            <div class="modal-sheet">
+                <div class="modal-handle"></div>
+                <header class="modal-head">
+                    <h2>О приложении</h2>
+                    <button class="btn-icon" data-close aria-label="Закрыть">
+                        <svg viewBox="0 0 24 24" width="20" height="20"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                    </button>
+                </header>
+                <div class="modal-body about-body">
+                    <div class="about-hero">
+                        <div class="about-logo">B</div>
+                        <div>
+                            <div class="about-title">Bar Manager</div>
+                            <div class="about-version">версия 0.5.0</div>
+                        </div>
+                    </div>
+
+                    <div class="about-info">
+                        <div class="about-row">
+                            <span class="about-label">Создатель</span>
+                            <span class="about-value">Kester7ka</span>
+                        </div>
+                    </div>
+
+                    <div class="about-note">
+                        Это независимый, неофициальный проект.
+                        Приложение <b>не имеет никакого отношения</b> к компании
+                        «Азбука Вкуса», её бренду и инфраструктуре.
+                    </div>
+
+                    <div class="about-note">
+                        Сделан исключительно в помощь сотрудникам бара — чтобы удобно
+                        следить за сроками годности позиций, ориентироваться в графике
+                        смен и видеть, кто сегодня работает. Никаких коммерческих целей
+                        проект не преследует.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ввод/редактирование QR-кода вручную -->
+        <div class="modal" id="qr-manual-modal">
+            <div class="modal-backdrop" data-close></div>
+            <div class="modal-sheet">
+                <div class="modal-handle"></div>
+                <header class="modal-head">
+                    <h2>QR-код вручную</h2>
+                    <button class="btn-icon" data-close aria-label="Закрыть">
+                        <svg viewBox="0 0 24 24" width="20" height="20"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                    </button>
+                </header>
+                <div class="modal-body">
+                    <label class="field">
+                        <span>Данные QR-кода</span>
+                        <input type="text" id="qr-manual-input" placeholder="напр., AVK-12345-XYZ" autocomplete="off">
+                    </label>
+                    <p class="step-hint">
+                        Если фото не распозналось — введи строку, зашифрованную в QR.
+                        Можно спросить у руководителя точки, если не знаешь.
+                    </p>
+                    <div class="step-actions">
+                        <button type="button" class="btn-step-back" data-close>Отмена</button>
+                        <button type="button" class="btn-primary" id="qr-manual-confirm">Сохранить</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Сканер штрихкодов / QR -->
+        <div class="overlay scanner-overlay" id="scanner-overlay">
+            <header class="overlay-head">
+                <button class="btn-icon" id="scanner-close" aria-label="Закрыть">
+                    <svg viewBox="0 0 24 24" width="20" height="20"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                </button>
+                <div class="overlay-title">
+                    <h2>Сканер штрихкода</h2>
+                    <span class="muted">наведи камеру на код</span>
+                </div>
+                <span style="width:38px"></span>
+            </header>
+            <div class="overlay-body scanner-body">
+                <div class="scanner-viewport" id="scanner-viewport"></div>
+                <p class="scanner-hint">Подержи штрихкод в кадре. Поддерживаются EAN-13, UPC, QR и др.</p>
+                <button type="button" class="btn-step-back scanner-cancel" id="scanner-cancel">Отмена</button>
+            </div>
+        </div>
+
+        <!-- Открытие позиции: дата/время вскрытия + опционально срок после -->
+        <div class="modal" id="open-modal">
+            <div class="modal-backdrop" data-close></div>
+            <div class="modal-sheet">
+                <div class="modal-handle"></div>
+                <header class="modal-head">
+                    <h2>Открыть позицию</h2>
+                    <button class="btn-icon" data-close aria-label="Закрыть">
+                        <svg viewBox="0 0 24 24" width="20" height="20"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                    </button>
+                </header>
+                <div class="modal-body">
+                    <div class="step-context">
+                        <span class="tob-tag" id="open-tob">000000</span>
+                        <span class="step-name" id="open-name">—</span>
+                    </div>
+
+                    <div class="field">
+                        <span>Когда вскрыли</span>
+                        <div class="expiry-row">
+                            <input type="date" id="open-date" required>
+                            <input type="time" id="open-time" required>
+                        </div>
+                        <div class="time-presets" id="open-time-presets">
+                            <button type="button" class="time-chip primary-chip" data-quick="now">Сейчас</button>
+                            <button type="button" class="time-chip" data-time="02:00">02:00</button>
+                            <button type="button" class="time-chip" data-time="08:00">08:00</button>
+                            <button type="button" class="time-chip" data-time="12:00">12:00</button>
+                            <button type="button" class="time-chip" data-time="18:00">18:00</button>
+                            <button type="button" class="time-chip" data-time="22:00">22:00</button>
+                        </div>
+                    </div>
+
+                    <label class="field hidden" id="open-shelf-field">
+                        <span>Срок после вскрытия (дней)</span>
+                        <input type="number" id="open-shelf-days" min="1" placeholder="напр., 3">
+                    </label>
+
+                    <p class="step-hint" id="open-hint"></p>
+
+                    <div class="step-actions">
+                        <button type="button" class="btn-step-back" data-close>Отмена</button>
+                        <button type="button" class="btn-primary" id="open-confirm">Открыть</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Статус сервисов -->
+        <div class="overlay status-overlay" id="status-overlay">
+            <header class="overlay-head">
+                <button class="btn-icon" id="status-close" aria-label="Назад">
+                    <svg viewBox="0 0 24 24" width="20" height="20"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+                </button>
+                <div class="overlay-title">
+                    <h2>Статус сервисов</h2>
+                    <span class="muted" id="status-summary">—</span>
+                </div>
+                <button class="btn-icon" id="status-refresh" aria-label="Обновить">
+                    <svg viewBox="0 0 24 24" width="20" height="20"><path d="M3 12a9 9 0 0115-6.7L21 8M21 3v5h-5M21 12a9 9 0 01-15 6.7L3 16M3 21v-5h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+                </button>
+            </header>
+            <div class="overlay-body">
+                <div class="status-card">
+                    <div class="status-list">
+                        <div class="status-row">
+                            <span class="svc-dot checking" id="svc-server-dot"></span>
+                            <span class="svc-name">Сервер</span>
+                            <span class="svc-state" id="svc-server-state">проверяем…</span>
+                        </div>
+                        <div class="status-row">
+                            <span class="svc-dot checking" id="svc-db-dot"></span>
+                            <span class="svc-name">База данных</span>
+                            <span class="svc-state" id="svc-db-state">проверяем…</span>
+                        </div>
+                        <div class="status-row">
+                            <span class="svc-dot checking" id="svc-api-dot"></span>
+                            <span class="svc-name">API</span>
+                            <span class="svc-state" id="svc-api-state">проверяем…</span>
+                        </div>
+                    </div>
+                    <div class="status-footer" id="status-footer">—</div>
+                </div>
+
+                <p class="status-hint">
+                    Чтобы не нагружать сервер, ручная проверка доступна не чаще раза в минуту. Автоматическая проверка происходит при открытии этой страницы.
+                </p>
+            </div>
+        </div>
+
+        <!-- Калькулятор сроков -->
+        <div class="overlay calendar-overlay" id="calendar-overlay">
+            <header class="overlay-head">
+                <button class="btn-icon" id="calendar-close" aria-label="Назад">
+                    <svg viewBox="0 0 24 24" width="20" height="20"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+                </button>
+                <div class="overlay-title">
+                    <h2>Календарь сроков</h2>
+                    <span class="muted">расчёт точно до минут</span>
+                </div>
+                <button class="btn-icon" id="calendar-reset" aria-label="Сбросить">
+                    <svg viewBox="0 0 24 24" width="20" height="20"><path d="M3 12a9 9 0 0115-6.7L21 8M21 3v5h-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+                </button>
+            </header>
+
+            <div class="overlay-body">
+                <div class="cal-section">
+                    <span class="cal-label">Вскрыто / приготовлено</span>
+                    <input type="datetime-local" id="cal-start" class="cal-input cal-input-dt">
+                    <div class="cal-presets">
+                        <button type="button" class="cal-chip" data-start="now">сейчас</button>
+                        <button type="button" class="cal-chip" data-start="-1h">−1 ч</button>
+                        <button type="button" class="cal-chip" data-start="-6h">−6 ч</button>
+                        <button type="button" class="cal-chip" data-start="-1d">−1 день</button>
+                    </div>
+                </div>
+
+                <div class="cal-section">
+                    <span class="cal-label">Срок годности</span>
+                    <div class="cal-duration">
+                        <label class="cal-dur-cell">
+                            <input type="number" id="cal-days" min="0" value="0">
+                            <span>дн</span>
+                        </label>
+                        <label class="cal-dur-cell">
+                            <input type="number" id="cal-hours" min="0" max="23" value="0">
+                            <span>ч</span>
+                        </label>
+                        <label class="cal-dur-cell">
+                            <input type="number" id="cal-mins" min="0" max="59" value="0">
+                            <span>мин</span>
+                        </label>
+                    </div>
+                    <div class="cal-presets">
+                        <button type="button" class="cal-chip" data-add="0:1:0">+1 ч</button>
+                        <button type="button" class="cal-chip" data-add="0:6:0">+6 ч</button>
+                        <button type="button" class="cal-chip" data-add="0:12:0">+12 ч</button>
+                        <button type="button" class="cal-chip" data-add="1:0:0">+1 день</button>
+                        <button type="button" class="cal-chip" data-add="3:0:0">+3 дня</button>
+                        <button type="button" class="cal-chip" data-add="7:0:0">+7 дней</button>
+                    </div>
+                </div>
+
+                <div class="cal-result" id="cal-result">
+                    <div class="cal-result-label">Истекает</div>
+                    <div class="cal-result-when" id="cal-result-when">—</div>
+                    <div class="cal-result-rel" id="cal-result-rel">введи дату и срок</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Полноэкранный лист графика -->
+        <div class="overlay" id="schedule-overlay">
+            <header class="overlay-head">
+                <button class="btn-icon" id="schedule-close" aria-label="Назад">
+                    <svg viewBox="0 0 24 24" width="20" height="20"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+                </button>
+                <div class="overlay-title">
+                    <h2>График</h2>
+                    <span class="muted" id="schedule-month-label">—</span>
+                </div>
+                <button class="btn-icon" id="schedule-refresh" aria-label="Обновить">
+                    <svg viewBox="0 0 24 24" width="20" height="20"><path d="M3 12a9 9 0 0115-6.7L21 8M21 3v5h-5M21 12a9 9 0 01-15 6.7L3 16M3 21v-5h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+                </button>
+            </header>
+
+            <div class="overlay-body" id="schedule-body">
+                <div class="schedule-loading">
+                    <div class="spinner"></div>
+                    <p class="muted">Загружаем график…</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Тост -->
+        <div class="toast" id="toast"></div>
+    </div>
+
+    <!-- SheetJS для парсинга xlsx -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- jsQR — распознавание QR-кода из фото -->
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+    <!-- qrcode-generator — отрисовка нового QR-кода (SVG) -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+    <!-- html5-qrcode — сканирование штрихкодов и QR с камеры -->
+    <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/nav.js"></script>
+    <script src="js/home.js"></script>
+    <script src="js/positions.js"></script>
+    <script src="js/tools.js"></script>
+    <script src="js/profile.js"></script>
+    <script src="js/schedule.js"></script>
+    <script src="js/calendar.js"></script>
+    <script src="js/status.js"></script>
+    <script src="js/weather.js"></script>
+    <script src="js/qr.js"></script>
+    <script src="js/scanner.js"></script>
+    <script src="js/news.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

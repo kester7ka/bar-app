@@ -1,0 +1,181 @@
+/* Калькулятор сроков годности */
+
+.calendar-overlay {
+    background: var(--bg);
+}
+
+.cal-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 14px;
+}
+
+.cal-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 10px;
+}
+
+.cal-input {
+    width: 100%;
+    height: 50px;
+    padding: 0 14px;
+    background: var(--surface-2);
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    font-size: 16px;
+    font-family: inherit;
+    color: var(--text);
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.cal-input:focus {
+    border-color: var(--text);
+    background: var(--surface);
+}
+
+.cal-input-dt {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.01em;
+}
+
+.cal-duration {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+
+.cal-dur-cell {
+    background: var(--surface-2);
+    border-radius: var(--radius-sm);
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 10px 6px 8px;
+    transition: background 0.15s ease, box-shadow 0.15s ease;
+    cursor: text;
+    min-height: 84px;
+}
+
+.cal-dur-cell:focus-within {
+    background: var(--surface);
+    box-shadow: inset 0 0 0 1px var(--text);
+}
+
+.cal-dur-cell input {
+    width: 100%;
+    flex: 1;
+    min-height: 44px;
+    background: none;
+    border: none;
+    outline: none;
+    text-align: center;
+    font-size: 26px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+    padding: 0;
+    font-family: inherit;
+    -moz-appearance: textfield;
+    letter-spacing: -0.02em;
+}
+
+.cal-dur-cell input::-webkit-outer-spin-button,
+.cal-dur-cell input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.cal-dur-cell span {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-muted);
+    pointer-events: none;
+    margin-top: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 500;
+}
+
+.cal-presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 12px;
+}
+
+.cal-chip {
+    height: 32px;
+    padding: 0 12px;
+    background: var(--surface-2);
+    border: 1px solid transparent;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-family: inherit;
+    font-variant-numeric: tabular-nums;
+}
+
+.cal-chip:active {
+    transform: scale(0.95);
+}
+
+.cal-chip:hover {
+    background: var(--border);
+}
+
+/* Результат */
+.cal-result {
+    background: var(--text);
+    color: var(--bg);
+    border-radius: var(--radius);
+    padding: 22px 20px;
+    margin-top: 6px;
+    text-align: left;
+    transition: opacity 0.2s ease;
+}
+
+.cal-result.faded {
+    opacity: 0.55;
+}
+
+.cal-result-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    opacity: 0.55;
+    margin-bottom: 8px;
+}
+
+.cal-result-when {
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    line-height: 1.15;
+    font-variant-numeric: tabular-nums;
+}
+
+.cal-result-rel {
+    margin-top: 6px;
+    font-size: 13px;
+    opacity: 0.7;
+    font-variant-numeric: tabular-nums;
+}
+
+.cal-result.expired {
+    background: var(--danger);
+    color: white;
+}
