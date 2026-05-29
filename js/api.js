@@ -3,7 +3,21 @@
 // либо предполагаем тот же origin.
 
 const Api = (() => {
-    const BASE = (typeof window !== 'undefined' && window.BAR_APP_API) || 'http://127.0.0.1:5000';
+    // Куда стучаться:
+    //   1) если задан window.BAR_APP_API — берём его (включая пустую строку
+    //      для same-origin);
+    //   2) если открыли index.html напрямую с диска (file://) — пробуем
+    //      локальный сервер на 127.0.0.1:5000;
+    //   3) иначе same-origin (для деплоя, где Flask отдаёт и фронт, и API).
+    const BASE = (() => {
+        if (typeof window !== 'undefined' && typeof window.BAR_APP_API === 'string') {
+            return window.BAR_APP_API;
+        }
+        if (typeof location !== 'undefined' && location.protocol === 'file:') {
+            return 'http://127.0.0.1:5000';
+        }
+        return '';
+    })();
     const TOKEN_KEY = 'bar-app:token';
 
     const getToken = () => localStorage.getItem(TOKEN_KEY) || null;

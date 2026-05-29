@@ -1,17 +1,22 @@
 """Тонкий слой доступа к SQLite."""
 from __future__ import annotations
 
+import os
 import sqlite3
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterator
 
-DB_PATH = Path(__file__).parent / "bar.db"
+# Путь к БД можно переопределить через BAR_APP_DB_PATH — на облачном
+# хостинге (Railway/Render) БД должна лежать на постоянном диске (volume),
+# иначе при каждом редеплое данные сотрутся.
+DB_PATH = Path(os.environ.get("BAR_APP_DB_PATH") or (Path(__file__).parent / "bar.db"))
 SCHEMA_PATH = Path(__file__).parent / "schema.sql"
 
 
 def init_db() -> None:
     """Создаёт таблицы и индексы, если их ещё нет; применяет миграции."""
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     with connect() as conn:
         conn.executescript(SCHEMA_PATH.read_text(encoding="utf-8"))
         _migrate(conn)

@@ -2,12 +2,11 @@
 
 Запуск:
     pip install -r requirements.txt
-    python seed_bars.py        # один раз — заливаем список баров
-    python gen_keys.py --bar АВПМ-97 --count 5  # генерим коды для регистрации
-    python server.py
+    python server.py           # БД и список баров создаются автоматически
 
-Все эндпоинты, кроме /api/auth/*, требуют Authorization: Bearer <token>.
+Все эндпоинты, кроме /api/auth/* и /api/health, требуют Authorization: Bearer <token>.
 Каждый запрос работает только с позициями бара, к которому привязан пользователь.
+Генерация одноразовых ключей регистрации — отдельный инструмент (вне репозитория).
 """
 from __future__ import annotations
 
@@ -596,9 +595,42 @@ def health():
 
 @app.route("/")
 def index():
-    return app.send_static_file("index.html")
+    # На облачном деплое фронт может жить отдельно (GitHub Pages), тогда
+    # index.html рядом нет — отдаём короткий JSON, чтобы '/' не падал.
+    try:
+        return app.send_static_file("index.html")
+    except Exception:
+        return jsonify({"app": "Bar Manager API", "health": "/api/health"})
+
+
+def _bootstrap() -> None:
+    """Готовит БД к работе. Вызывается и при `python server.py`,
+    и при импорте gunicorn'ом (`gunicorn server:app`)."""
+    init_db()
+    # Авто-сид баров, если таблица пуста — удобно для облака,
+    # где не получится вручную дёрнуть seed_bars.py.
+    try:
+        with connect() as conn:
+            empty = conn.execute("SELECT COUNT(*) AS c FROM bars").fetchone()["c"] == 0
+        if empty:
+            from seed_bars import FALLBACK
+            with connect() as conn:
+                for b in FALLBACK:
+                    conn.execute(
+                        "INSERT OR IGNORE INTO bars (code, short_code, name, address) "
+                        "VALUES (?, ?, ?, ?)",
+                        (b["code"], b["short_code"], b["name"], b["address"]),
+                    )
+            logger.info("auto-seeded %d bars", len(FALLBACK))
+    except Exception:
+        logger.exception("bootstrap seed failed")
+
+
+# Выполняется при импорте модуля (в т.ч. gunicorn'ом).
+_bootstrap()
 
 
 if __name__ == "__main__":
-    init_db()
-    app.run(host="127.0.0.1", port=5000, debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    debug = os.environ.get("BAR_APP_DEBUG", "").lower() in ("1", "true", "yes")
+    app.run(host="0.0.0.0", port=port, debug=debug)

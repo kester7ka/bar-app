@@ -37,3 +37,6 @@ logs/
 .env.local
 backend/.env
 backend/.env.local
+
+# ---- Windows-батник: специфичен для локальной машины ----
+start.bat
