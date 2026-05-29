@@ -22,15 +22,23 @@ const Scanner = (() => {
         await new Promise(r => requestAnimationFrame(r));
 
         try {
-            scanner = new Html5Qrcode('scanner-viewport', { verbose: false });
+            // useBarCodeDetectorIfSupported — задействует нативный BarcodeDetector
+            // браузера (Chromium/Edge). Он распознаёт коды под произвольным углом,
+            // включая повёрнутые на 90°/180° и наклонённые в сторону.
+            // disableFlip: false — пытаемся читать и зеркальные кадры (фронт-камера).
+            scanner = new Html5Qrcode('scanner-viewport', {
+                verbose: false,
+                experimentalFeatures: { useBarCodeDetectorIfSupported: true }
+            });
             await scanner.start(
                 { facingMode: 'environment' },
                 {
-                    fps: 12,
+                    fps: 15,
+                    disableFlip: false,
                     qrbox: (vw, vh) => {
                         const side = Math.min(vw, vh) - 60;
-                        const w = Math.max(220, side);
-                        const h = Math.round(w * 0.65); // прямоугольник под штрихкод
+                        const w = Math.max(240, side);
+                        const h = Math.round(w * 0.7);
                         return { width: w, height: h };
                     }
                 },

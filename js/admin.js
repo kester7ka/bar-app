@@ -1,7 +1,6 @@
-// Админ-панель: переключение активного бара + генерация ключей регистрации.
-// Видна только пользователю с is_admin. Все эндпоинты защищены на сервере
-// (@require_admin), так что обычный пользователь ничего не сможет, даже если
-// подделает UI.
+// Админ-панель: отдельный оверлей в Инструментах (виден только админу
+// через CSS-класс body.is-admin). Все эндпоинты защищены @require_admin
+// на сервере, так что обычный юзер ничего не сможет даже подменив UI.
 
 const Admin = (() => {
     let bars = [];
@@ -26,27 +25,30 @@ const Admin = (() => {
         if (selectedId != null) sel.value = String(selectedId);
     }
 
-    // Вызывается из Profile.render(). Прячет панель для не-админов.
-    async function render() {
-        const card = document.getElementById('admin-card');
-        if (!card) return;
-        if (!Auth.isAdmin?.()) { card.classList.add('hidden'); return; }
-        card.classList.remove('hidden');
-
+    async function open() {
+        if (!Auth.isAdmin?.()) {
+            Utils.toast('Только для администратора');
+            return;
+        }
+        document.getElementById('admin-overlay').classList.add('show');
         if (bars.length === 0) await loadBars();
-
         const activeId = Api.getBarOverride() || (Auth.bar()?.id ?? '');
         fillSelect(document.getElementById('admin-active-bar'), activeId);
         fillSelect(document.getElementById('admin-keygen-bar'), activeId);
     }
 
+    function close() {
+        document.getElementById('admin-overlay').classList.remove('show');
+    }
+
     async function switchBar(barId) {
         Api.setBarOverride(barId);
         try {
-            await Auth.refreshMe();    // Auth.bar() станет активным баром
+            await Auth.refreshMe();      // Auth.bar() станет активным баром
             await Storage.refresh();
             if (typeof Home !== 'undefined') Home.render();
-            render();
+            if (typeof Positions !== 'undefined') Positions.render();
+            if (typeof Profile !== 'undefined') Profile.render();
             Utils.toast('Бар переключён');
         } catch (e) {
             Utils.toast(e.message || 'Не удалось переключить бар');
@@ -96,11 +98,12 @@ const Admin = (() => {
     }
 
     function init() {
+        document.getElementById('admin-close')?.addEventListener('click', close);
         document.getElementById('admin-active-bar')
             ?.addEventListener('change', (e) => switchBar(e.target.value));
         document.getElementById('admin-keygen-btn')
             ?.addEventListener('click', generate);
     }
 
-    return { init, render };
+    return { init, open, close };
 })();

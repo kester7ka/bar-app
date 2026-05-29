@@ -468,8 +468,10 @@ const Schedule = (() => {
 
         document.getElementById('schedule-month-label').textContent = month.label;
 
-        // Если пользователь привязан к бару — показываем только его.
-        const userBar = Auth.isAuthed?.() ? Auth.bar() : null;
+        // Обычный пользователь видит график только своего бара.
+        // Админу показываем все бары (он сам выбирает через чипы).
+        const lockToBar = Auth.isAuthed?.() && !Auth.isAdmin?.();
+        const userBar = lockToBar ? Auth.bar() : null;
         const visibleBars = userBar
             ? month.bars.filter(b => matchesBar(b, userBar))
             : month.bars;

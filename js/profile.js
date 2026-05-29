@@ -16,8 +16,8 @@ const Profile = (() => {
         document.getElementById('profile-name').textContent = u.display_name || u.username;
         document.getElementById('profile-username').textContent = `@${u.username}`;
         document.body.classList.toggle('is-offline', !!Auth.isOffline?.());
+        document.body.classList.toggle('is-admin',   !!Auth.isAdmin?.());
         if (typeof QR !== 'undefined') QR.render();
-        if (typeof Admin !== 'undefined') Admin.render();
 
         // Не показываем name второй раз, если он совпадает с code (так бывает,
         // когда seed_bars не нашёл осмысленного «человеческого» названия).

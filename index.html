@@ -184,6 +184,10 @@
                         <span class="tool-icon">◉</span>
                         <span class="tool-name">Статус сервисов</span>
                     </button>
+                    <button class="tool-tile wide admin-only" data-tool="admin">
+                        <span class="tool-icon">⚙</span>
+                        <span class="tool-name">Админ-панель</span>
+                    </button>
                     <button class="tool-tile" data-tool="scan">
                         <span class="tool-icon">⌗</span>
                         <span class="tool-name">Найти по TOB</span>
@@ -237,37 +241,6 @@
                         <span class="muted">›</span>
                     </button>
                 </div>
-
-                <!-- Админ-панель (видна только администратору) -->
-                <section class="admin-card hidden" id="admin-card">
-                    <h3 class="admin-title">Админ · управление</h3>
-
-                    <label class="admin-field">
-                        <span>Активный бар <em>(что ты видишь в приложении)</em></span>
-                        <select id="admin-active-bar" class="admin-select"></select>
-                    </label>
-
-                    <div class="admin-divider"></div>
-
-                    <span class="admin-subtitle">Генерация ключей регистрации</span>
-                    <label class="admin-field">
-                        <span>Бар</span>
-                        <select id="admin-keygen-bar" class="admin-select"></select>
-                    </label>
-                    <div class="admin-row">
-                        <label class="admin-field admin-field-sm">
-                            <span>Сколько</span>
-                            <input type="number" id="admin-keygen-count" min="1" max="50" value="1">
-                        </label>
-                        <label class="admin-field">
-                            <span>Кому (необязательно)</span>
-                            <input type="text" id="admin-keygen-note" maxlength="200" placeholder="напр., Аня, бариста">
-                        </label>
-                    </div>
-                    <button class="btn-primary" id="admin-keygen-btn">Сгенерировать ключи</button>
-
-                    <div class="admin-keys hidden" id="admin-keys"></div>
-                </section>
 
                 <!-- QR-код прихода -->
                 <section class="qr-card">
@@ -746,6 +719,50 @@
                         <button type="button" class="btn-primary" id="open-confirm">Открыть</button>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Админ-панель: переключение баров + генерация ключей -->
+        <div class="overlay admin-overlay" id="admin-overlay">
+            <header class="overlay-head">
+                <button class="btn-icon" id="admin-close" aria-label="Назад">
+                    <svg viewBox="0 0 24 24" width="20" height="20"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+                </button>
+                <div class="overlay-title">
+                    <h2>Админ-панель</h2>
+                    <span class="muted">бары и ключи</span>
+                </div>
+                <span style="width:38px"></span>
+            </header>
+            <div class="overlay-body">
+                <section class="admin-card">
+                    <h3 class="admin-title">Активный бар</h3>
+                    <label class="admin-field">
+                        <span>Что ты сейчас видишь в приложении</span>
+                        <select id="admin-active-bar" class="admin-select"></select>
+                    </label>
+                </section>
+
+                <section class="admin-card">
+                    <h3 class="admin-title">Генерация ключей регистрации</h3>
+                    <label class="admin-field">
+                        <span>Для какого бара</span>
+                        <select id="admin-keygen-bar" class="admin-select"></select>
+                    </label>
+                    <div class="admin-row">
+                        <label class="admin-field admin-field-sm">
+                            <span>Сколько</span>
+                            <input type="number" id="admin-keygen-count" min="1" max="50" value="1">
+                        </label>
+                        <label class="admin-field">
+                            <span>Кому (необязательно)</span>
+                            <input type="text" id="admin-keygen-note" maxlength="200" placeholder="напр., Аня, бариста">
+                        </label>
+                    </div>
+                    <button class="btn-primary" id="admin-keygen-btn">Сгенерировать ключи</button>
+
+                    <div class="admin-keys hidden" id="admin-keys"></div>
+                </section>
             </div>
         </div>
 

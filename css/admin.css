@@ -1,11 +1,23 @@
-/* Админ-панель в профиле — видна только администратору */
+/* Админ-панель — оверлей в Инструментах. Плитку и оверлей видит только админ. */
+
+/* Плитка «Админ-панель» в Tools — по умолчанию скрыта,
+   показывается только если у body выставлен класс is-admin. */
+.tool-tile.admin-only { display: none; }
+body.is-admin .tool-tile.admin-only { display: flex; }
+
+/* У админа нет смысла в QR-коде прихода — скрываем карточку. */
+body.is-admin .qr-card { display: none; }
+
+.admin-overlay {
+    background: var(--bg);
+}
 
 .admin-card {
-    margin-top: 22px;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 18px;
+    margin-bottom: 14px;
 }
 
 .admin-card.hidden {

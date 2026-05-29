@@ -31,6 +31,8 @@ const Boot = (() => {
     }
 
     async function afterAuth() {
+        // Отметка для CSS: показывает админ-плитку, скрывает QR у админа.
+        document.body.classList.toggle('is-admin', !!Auth.isAdmin?.());
         try {
             await Storage.refresh();
         } catch (err) {
