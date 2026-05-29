@@ -1,4 +1,5 @@
 flask>=3.0
+flask-cors>=4.0
 # Прод-сервер (для Render / Railway / fly.io / VPS).
 # Локально не обязателен — `python server.py` поднимает встроенный dev-сервер.
 gunicorn>=21.2

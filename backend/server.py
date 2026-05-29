@@ -22,6 +22,7 @@ from time import time
 from typing import Optional
 
 from flask import Flask, g, jsonify, request
+from flask_cors import CORS
 
 from auth_lib import (
     hash_password, verify_password,
@@ -37,6 +38,14 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 # ----- Конфиг из окружения -----
 # CORS: '*' для локалки. В продакшене перечислить домены через запятую.
 CORS_ORIGINS = os.environ.get("BAR_APP_CORS_ORIGINS", "*").strip()
+
+# flask-cors сам обрабатывает preflight (OPTIONS) и проставляет заголовки.
+# Это надёжнее ручной логики — поддерживает credentials, списки origin'ов и т.д.
+if CORS_ORIGINS == "*":
+    CORS(app, resources={r"/api/*": {"origins": "*"}})
+else:
+    _origins = [o.strip().rstrip("/") for o in CORS_ORIGINS.split(",") if o.strip()]
+    CORS(app, resources={r"/api/*": {"origins": _origins}})
 
 TOB_RE = re.compile(r"^\d{6}$")
 KEY_RE = re.compile(r"^\d{8}$")
@@ -85,35 +94,16 @@ def _dummy_hash() -> str:
     return _dummy_hash_cache
 
 
-# ----------------- CORS + security headers -----------------
+# ----------------- Security headers -----------------
+# CORS обрабатывает flask-cors (см. выше). Здесь — только security-заголовки.
 
 @app.after_request
 def add_headers(resp):
-    # CORS — берём из ENV. Для разработки '*', для прода — список доменов.
-    # Сравнение терпимо к лишнему слешу на конце (частая опечатка в настройках).
-    origin = request.headers.get("Origin", "")
-    if CORS_ORIGINS == "*":
-        resp.headers["Access-Control-Allow-Origin"] = "*"
-    elif origin:
-        allowed = {o.strip().rstrip("/") for o in CORS_ORIGINS.split(",") if o.strip()}
-        if origin.rstrip("/") in allowed:
-            resp.headers["Access-Control-Allow-Origin"] = origin
-            resp.headers["Vary"] = "Origin"
-    resp.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
-    resp.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
-    resp.headers["Access-Control-Max-Age"] = "86400"
-
-    # Базовые security-заголовки.
     resp.headers.setdefault("X-Content-Type-Options", "nosniff")
     resp.headers.setdefault("X-Frame-Options", "DENY")
     resp.headers.setdefault("Referrer-Policy", "same-origin")
     resp.headers.setdefault("Permissions-Policy", "geolocation=(), microphone=()")
     return resp
-
-
-@app.route("/api/<path:_p>", methods=["OPTIONS"])
-def cors_preflight(_p):
-    return ("", HTTPStatus.NO_CONTENT)
 
 
 # ----------------- Auth middleware -----------------
