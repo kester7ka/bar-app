@@ -20,6 +20,7 @@ const Boot = (() => {
         News.init();
         QR.init();
         Scanner.init();
+        Admin.init();
 
         const ok = await Auth.bootstrap();
         if (ok) {

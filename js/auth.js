@@ -11,6 +11,17 @@ const Auth = (() => {
     const bar  = () => _bar;
     const isAuthed = () => !!_user && !!Api.getToken();
     const isOffline = () => _offline;
+    const isAdmin = () => !!(_user && _user.is_admin);
+
+    // Перечитать /api/auth/me (для админа учитывает X-Bar-Id → вернёт активный бар).
+    async function refreshMe() {
+        const me = await Api.get('/api/auth/me');
+        _user = me.user;
+        _bar = me.bar;
+        _offline = false;
+        writeCache();
+        return me;
+    }
 
     function writeCache() {
         if (!_user || !_bar) return;
@@ -36,6 +47,8 @@ const Auth = (() => {
             _user = me.user;
             _bar = me.bar;
             _offline = false;
+            // Не-админу оставшийся override бара ни к чему — чистим.
+            if (!_user.is_admin) Api.setBarOverride(null);
             writeCache();
             return true;
         } catch (e) {
@@ -80,6 +93,7 @@ const Auth = (() => {
     async function logout() {
         try { await Api.post('/api/auth/logout'); } catch {}
         Api.setToken(null);
+        Api.setBarOverride(null);   // сбрасываем админское переключение бара
         clearCache();
         _user = null;
         _bar = null;
@@ -182,5 +196,5 @@ const Auth = (() => {
         bindForms();
     }
 
-    return { init, bootstrap, show, hide, isAuthed, isOffline, user, bar, logout, register, login };
+    return { init, bootstrap, show, hide, isAuthed, isOffline, isAdmin, refreshMe, user, bar, logout, register, login };
 })();

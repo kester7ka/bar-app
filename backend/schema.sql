@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash       TEXT    NOT NULL,
     display_name        TEXT,
     accepted_policy_at  TEXT    NOT NULL,
+    is_admin            INTEGER NOT NULL DEFAULT 0,
     created_at          TEXT    NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_users_bar ON users(bar_id);

@@ -23,11 +23,20 @@ const Api = (() => {
     const getToken = () => localStorage.getItem(TOKEN_KEY) || null;
     const setToken = (t) => t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY);
 
+    const BAR_OVERRIDE_KEY = 'bar-app:admin-bar';
+    const getBarOverride = () => localStorage.getItem(BAR_OVERRIDE_KEY) || null;
+    const setBarOverride = (id) => id
+        ? localStorage.setItem(BAR_OVERRIDE_KEY, String(id))
+        : localStorage.removeItem(BAR_OVERRIDE_KEY);
+
     async function call(method, path, body) {
         const headers = { 'Accept': 'application/json' };
         if (body !== undefined) headers['Content-Type'] = 'application/json';
         const t = getToken();
         if (t) headers['Authorization'] = `Bearer ${t}`;
+        // Админ может смотреть другой бар — сервер учитывает это только для админов.
+        const barOverride = getBarOverride();
+        if (barOverride) headers['X-Bar-Id'] = barOverride;
         let resp;
         try {
             resp = await fetch(`${BASE}${path}`, {
@@ -61,6 +70,8 @@ const Api = (() => {
         delete: (p)    => call('DELETE', p),
         getToken,
         setToken,
+        getBarOverride,
+        setBarOverride,
         ApiError,
         BASE
     };

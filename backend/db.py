@@ -45,6 +45,10 @@ def _migrate(conn) -> None:
         conn.execute("ALTER TABLE positions ADD COLUMN production_date TEXT")
     if "closed_shelf_days" not in cols:
         conn.execute("ALTER TABLE positions ADD COLUMN closed_shelf_days INTEGER")
+    # Миграция 5: флаг администратора у пользователей.
+    ucols = {r[1] for r in conn.execute("PRAGMA table_info(users)")}
+    if "is_admin" not in ucols:
+        conn.execute("ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0")
 
     row = conn.execute(
         "SELECT sql FROM sqlite_master WHERE type='table' AND name='positions'"
@@ -135,10 +139,12 @@ def row_to_bar(row: sqlite3.Row) -> dict:
 
 
 def row_to_user(row: sqlite3.Row) -> dict:
+    keys = row.keys()
     return {
         "id": row["id"],
         "bar_id": row["bar_id"],
         "username": row["username"],
         "display_name": row["display_name"],
+        "is_admin": bool(row["is_admin"]) if "is_admin" in keys else False,
         "created_at": row["created_at"],
     }

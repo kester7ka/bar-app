@@ -41,6 +41,7 @@
     <link rel="stylesheet" href="css/status.css">
     <link rel="stylesheet" href="css/news.css">
     <link rel="stylesheet" href="css/scanner.css">
+    <link rel="stylesheet" href="css/admin.css">
     <link rel="stylesheet" href="css/auth.css">
 </head>
 <body>
@@ -236,6 +237,37 @@
                         <span class="muted">›</span>
                     </button>
                 </div>
+
+                <!-- Админ-панель (видна только администратору) -->
+                <section class="admin-card hidden" id="admin-card">
+                    <h3 class="admin-title">Админ · управление</h3>
+
+                    <label class="admin-field">
+                        <span>Активный бар <em>(что ты видишь в приложении)</em></span>
+                        <select id="admin-active-bar" class="admin-select"></select>
+                    </label>
+
+                    <div class="admin-divider"></div>
+
+                    <span class="admin-subtitle">Генерация ключей регистрации</span>
+                    <label class="admin-field">
+                        <span>Бар</span>
+                        <select id="admin-keygen-bar" class="admin-select"></select>
+                    </label>
+                    <div class="admin-row">
+                        <label class="admin-field admin-field-sm">
+                            <span>Сколько</span>
+                            <input type="number" id="admin-keygen-count" min="1" max="50" value="1">
+                        </label>
+                        <label class="admin-field">
+                            <span>Кому (необязательно)</span>
+                            <input type="text" id="admin-keygen-note" maxlength="200" placeholder="напр., Аня, бариста">
+                        </label>
+                    </div>
+                    <button class="btn-primary" id="admin-keygen-btn">Сгенерировать ключи</button>
+
+                    <div class="admin-keys hidden" id="admin-keys"></div>
+                </section>
 
                 <!-- QR-код прихода -->
                 <section class="qr-card">
@@ -874,6 +906,7 @@
     <script src="js/weather.js"></script>
     <script src="js/qr.js"></script>
     <script src="js/scanner.js"></script>
+    <script src="js/admin.js"></script>
     <script src="js/news.js"></script>
     <script src="js/app.js"></script>
 </body>

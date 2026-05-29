@@ -1,0 +1,152 @@
+/* Админ-панель в профиле — видна только администратору */
+
+.admin-card {
+    margin-top: 22px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px;
+}
+
+.admin-card.hidden {
+    display: none;
+}
+
+.admin-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 14px;
+}
+
+.admin-subtitle {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 10px;
+}
+
+.admin-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+.admin-field > span {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+.admin-field > span em {
+    font-style: normal;
+    opacity: 0.7;
+}
+
+.admin-field input,
+.admin-select {
+    height: 46px;
+    padding: 0 14px;
+    background: var(--surface-2);
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    font-size: 15px;
+    color: var(--text);
+    outline: none;
+    font-family: inherit;
+    appearance: none;
+    -webkit-appearance: none;
+    transition: border-color 0.15s ease;
+}
+
+.admin-field input:focus,
+.admin-select:focus {
+    border-color: var(--text);
+}
+
+.admin-select {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24'><path d='M6 9l6 6 6-6' stroke='%2371717a' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 36px;
+}
+
+.admin-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 8px 0 16px;
+}
+
+.admin-row {
+    display: flex;
+    gap: 10px;
+}
+
+.admin-field-sm {
+    flex: 0 0 90px;
+}
+
+.admin-card .btn-primary {
+    margin-top: 4px;
+}
+
+/* Результат генерации */
+.admin-keys {
+    margin-top: 16px;
+    padding: 14px;
+    background: var(--surface-2);
+    border-radius: var(--radius-sm);
+}
+
+.admin-keys.hidden {
+    display: none;
+}
+
+.admin-keys-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.admin-copy {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 4px 10px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.admin-copy:active {
+    transform: scale(0.96);
+}
+
+.admin-keys-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.admin-key {
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 0.18em;
+    color: var(--text);
+    background: var(--surface);
+    padding: 8px 12px;
+    border-radius: var(--radius-sm);
+    text-align: center;
+    user-select: all;
+}

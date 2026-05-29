@@ -13,6 +13,7 @@ from __future__ import annotations
 import logging
 import os
 import re
+import secrets
 import uuid
 from collections import deque
 from datetime import date, datetime, timedelta, timezone
@@ -116,7 +117,7 @@ def require_auth(fn):
             return jsonify({"error": "auth required"}), HTTPStatus.UNAUTHORIZED
         with connect() as conn:
             session = conn.execute(
-                "SELECT s.token, s.user_id, s.expires_at, u.bar_id "
+                "SELECT s.token, s.user_id, s.expires_at, u.bar_id, u.is_admin "
                 "FROM sessions s JOIN users u ON u.id = s.user_id "
                 "WHERE s.token = ?",
                 (token,),
@@ -125,6 +126,21 @@ def require_auth(fn):
                 return jsonify({"error": "session expired"}), HTTPStatus.UNAUTHORIZED
             g.user_id = session["user_id"]
             g.bar_id = session["bar_id"]
+            g.is_admin = bool(session["is_admin"])
+            # Админ может смотреть любой бар: переопределение через X-Bar-Id.
+            if g.is_admin:
+                override = request.headers.get("X-Bar-Id", "")
+                if override.isdigit():
+                    g.bar_id = int(override)
+        return fn(*args, **kwargs)
+    return wrapper
+
+
+def require_admin(fn):
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        if not getattr(g, "is_admin", False):
+            return _err("Доступно только администратору", HTTPStatus.FORBIDDEN)
         return fn(*args, **kwargs)
     return wrapper
 
@@ -274,6 +290,73 @@ def me():
         user = conn.execute("SELECT * FROM users WHERE id = ?", (g.user_id,)).fetchone()
         bar = conn.execute("SELECT * FROM bars WHERE id = ?", (g.bar_id,)).fetchone()
     return jsonify({"user": row_to_user(user), "bar": row_to_bar(bar)})
+
+
+# ----------------- Admin: генерация ключей -----------------
+
+def _gen_unique_key(conn) -> str:
+    for _ in range(50):
+        k = "".join(str(secrets.randbelow(10)) for _ in range(8))
+        if not conn.execute("SELECT 1 FROM one_time_keys WHERE key = ?", (k,)).fetchone():
+            return k
+    raise RuntimeError("cannot generate unique key")
+
+
+@app.post("/api/admin/keys")
+@require_auth
+@require_admin
+def admin_create_keys():
+    data = request.get_json(silent=True) or {}
+    try:
+        bar_id = int(data.get("bar_id"))
+        count = int(data.get("count", 1))
+    except (TypeError, ValueError):
+        return _err("Неверные параметры")
+    note = (data.get("note") or "").strip()[:MAX_NOTE] or None
+    if count < 1 or count > 50:
+        return _err("Количество ключей: от 1 до 50")
+
+    with connect() as conn:
+        bar = conn.execute("SELECT id, code, name FROM bars WHERE id = ?", (bar_id,)).fetchone()
+        if not bar:
+            return _err("Бар не найден", HTTPStatus.NOT_FOUND)
+        keys = []
+        for _ in range(count):
+            k = _gen_unique_key(conn)
+            conn.execute(
+                "INSERT INTO one_time_keys (key, bar_id, note) VALUES (?, ?, ?)",
+                (k, bar_id, note),
+            )
+            keys.append(k)
+    logger.info("admin %s generated %d keys for bar %s", g.user_id, count, bar["code"])
+    return jsonify({"keys": keys, "bar": {"id": bar["id"], "code": bar["code"], "name": bar["name"]}})
+
+
+@app.get("/api/admin/keys")
+@require_auth
+@require_admin
+def admin_list_keys():
+    bar_id = request.args.get("bar_id", "")
+    sql = ("SELECT k.key, k.created_at, k.used_at, k.note, b.code AS bar_code "
+           "FROM one_time_keys k JOIN bars b ON b.id = k.bar_id")
+    args: list = []
+    if bar_id.isdigit():
+        sql += " WHERE k.bar_id = ?"
+        args.append(int(bar_id))
+    sql += " ORDER BY (k.used_at IS NULL) DESC, k.created_at DESC LIMIT 200"
+    with connect() as conn:
+        rows = conn.execute(sql, args).fetchall()
+    return jsonify([
+        {
+            "key": r["key"],
+            "bar_code": r["bar_code"],
+            "note": r["note"],
+            "used": bool(r["used_at"]),
+            "used_at": r["used_at"],
+            "created_at": r["created_at"],
+        }
+        for r in rows
+    ])
 
 
 # ----------------- Positions (scoped by bar) -----------------
@@ -616,6 +699,33 @@ def _bootstrap() -> None:
             logger.info("auto-seeded %d bars", len(FALLBACK))
     except Exception:
         logger.exception("bootstrap seed failed")
+
+    # Создаём админа из переменных окружения, если задан и ещё не существует.
+    admin_user = (os.environ.get("BAR_APP_ADMIN_USER") or "").strip()
+    admin_pass = os.environ.get("BAR_APP_ADMIN_PASSWORD") or ""
+    if admin_user and admin_pass:
+        try:
+            with connect() as conn:
+                exists = conn.execute(
+                    "SELECT id, is_admin FROM users WHERE username = ? COLLATE NOCASE",
+                    (admin_user,),
+                ).fetchone()
+                if exists:
+                    # Уже есть — на всякий случай поднимаем флаг админа.
+                    if not exists["is_admin"]:
+                        conn.execute("UPDATE users SET is_admin = 1 WHERE id = ?", (exists["id"],))
+                        logger.info("promoted existing user to admin: %s", admin_user)
+                else:
+                    bar = conn.execute("SELECT id FROM bars ORDER BY id LIMIT 1").fetchone()
+                    if bar:
+                        conn.execute(
+                            "INSERT INTO users (bar_id, username, password_hash, display_name, "
+                            "accepted_policy_at, is_admin) VALUES (?, ?, ?, ?, datetime('now'), 1)",
+                            (bar["id"], admin_user, hash_password(admin_pass), "Администратор"),
+                        )
+                        logger.info("admin user created: %s", admin_user)
+        except Exception:
+            logger.exception("admin bootstrap failed")
 
 
 # Выполняется при импорте модуля (в т.ч. gunicorn'ом).
