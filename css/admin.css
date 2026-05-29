@@ -162,3 +162,144 @@ body.is-admin .qr-card { display: none; }
     text-align: center;
     user-select: all;
 }
+
+/* ---- Список всех ключей с фильтром и удалением ---- */
+.admin-list-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.admin-list-head .admin-title {
+    margin-bottom: 0;
+}
+
+.admin-refresh {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--surface-2);
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s ease;
+}
+
+.admin-refresh:active {
+    background: var(--border);
+}
+
+.admin-keys-filter {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+.admin-filter-chip {
+    flex: 1;
+    height: 32px;
+    background: var(--surface-2);
+    border: none;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.admin-filter-chip.active {
+    background: var(--text);
+    color: var(--bg);
+}
+
+.admin-keys-table {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 360px;
+    overflow-y: auto;
+}
+
+.admin-keys-table::-webkit-scrollbar { width: 4px; }
+.admin-keys-table::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.admin-key-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: var(--surface-2);
+    border-radius: var(--radius-sm);
+    transition: opacity 0.15s ease;
+}
+
+.admin-key-row.is-used {
+    opacity: 0.55;
+}
+
+.admin-key-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.admin-key-code {
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: var(--text);
+    user-select: all;
+}
+
+.admin-key-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+    font-size: 11px;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.admin-key-bar {
+    color: var(--text);
+    font-weight: 500;
+}
+
+.admin-key-status {
+    color: var(--success);
+    font-weight: 500;
+}
+
+.admin-key-row.is-used .admin-key-status {
+    color: var(--text-muted);
+}
+
+.admin-key-del {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
+}
+
+.admin-key-del:active {
+    transform: scale(0.9);
+    background: var(--danger);
+    color: white;
+}

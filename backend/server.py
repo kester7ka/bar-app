@@ -332,6 +332,18 @@ def admin_create_keys():
     return jsonify({"keys": keys, "bar": {"id": bar["id"], "code": bar["code"], "name": bar["name"]}})
 
 
+@app.delete("/api/admin/keys/<key>")
+@require_auth
+@require_admin
+def admin_delete_key(key):
+    with connect() as conn:
+        cur = conn.execute("DELETE FROM one_time_keys WHERE key = ?", (key,))
+        if cur.rowcount == 0:
+            return _err("Ключ не найден", HTTPStatus.NOT_FOUND)
+    logger.info("admin %s deleted key %s", g.user_id, key)
+    return ("", HTTPStatus.NO_CONTENT)
+
+
 @app.get("/api/admin/keys")
 @require_auth
 @require_admin

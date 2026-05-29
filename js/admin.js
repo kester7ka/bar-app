@@ -4,6 +4,8 @@
 
 const Admin = (() => {
     let bars = [];
+    let allKeys = [];
+    let keyFilter = 'all';
 
     async function loadBars() {
         try { bars = await Api.get('/api/bars'); }
@@ -35,6 +37,7 @@ const Admin = (() => {
         const activeId = Api.getBarOverride() || (Auth.bar()?.id ?? '');
         fillSelect(document.getElementById('admin-active-bar'), activeId);
         fillSelect(document.getElementById('admin-keygen-bar'), activeId);
+        loadAllKeys();   // подтянем актуальный список ключей
     }
 
     function close() {
@@ -66,9 +69,79 @@ const Admin = (() => {
             renderKeys(r.keys, r.bar);
             document.getElementById('admin-keygen-note').value = '';
             Utils.toast(`Создано ключей: ${r.keys.length}`);
+            loadAllKeys();   // обновим список снизу
         } catch (e) {
             Utils.toast(e.message || 'Не удалось сгенерировать');
         }
+    }
+
+    // ----- Список всех ключей с фильтром и удалением -----
+    async function loadAllKeys() {
+        const box = document.getElementById('admin-all-keys');
+        if (!box) return;
+        try {
+            allKeys = await Api.get('/api/admin/keys');
+            renderAllKeys();
+        } catch (e) {
+            box.innerHTML = '<p class="empty-text">Не удалось загрузить ключи</p>';
+        }
+    }
+
+    function renderAllKeys() {
+        const box = document.getElementById('admin-all-keys');
+        if (!box) return;
+        const filtered = allKeys.filter(k => {
+            if (keyFilter === 'free') return !k.used;
+            if (keyFilter === 'used') return k.used;
+            return true;
+        });
+        if (filtered.length === 0) {
+            box.innerHTML = '<p class="empty-text">Нет ключей в этой категории</p>';
+            return;
+        }
+        box.innerHTML = filtered.map(k => {
+            const status = k.used
+                ? `использован${k.used_at ? ' · ' + k.used_at.slice(0, 16).replace('T', ' ') : ''}`
+                : 'свободен';
+            return `
+                <div class="admin-key-row ${k.used ? 'is-used' : ''}">
+                    <div class="admin-key-main">
+                        <span class="admin-key-code">${Utils.escape(k.key)}</span>
+                        <div class="admin-key-meta">
+                            <span class="admin-key-bar">${Utils.escape(k.bar_code)}</span>
+                            <span class="admin-key-status">${Utils.escape(status)}</span>
+                            ${k.note ? `<span class="admin-key-note">· ${Utils.escape(k.note)}</span>` : ''}
+                        </div>
+                    </div>
+                    <button type="button" class="admin-key-del" data-key="${Utils.escape(k.key)}" aria-label="Удалить">
+                        <svg viewBox="0 0 24 24" width="14" height="14"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                    </button>
+                </div>
+            `;
+        }).join('');
+        box.querySelectorAll('.admin-key-del').forEach(btn => {
+            btn.addEventListener('click', () => deleteKey(btn.dataset.key));
+        });
+    }
+
+    async function deleteKey(key) {
+        if (!confirm(`Удалить ключ ${key}?`)) return;
+        try {
+            await Api.delete(`/api/admin/keys/${encodeURIComponent(key)}`);
+            allKeys = allKeys.filter(k => k.key !== key);
+            renderAllKeys();
+            Utils.toast('Удалено');
+        } catch (e) {
+            Utils.toast(e.message || 'Не удалось удалить');
+        }
+    }
+
+    function setFilter(f) {
+        keyFilter = f;
+        document.querySelectorAll('#admin-keys-filter .admin-filter-chip').forEach(c => {
+            c.classList.toggle('active', c.dataset.filter === f);
+        });
+        renderAllKeys();
     }
 
     function renderKeys(keys, bar) {
@@ -103,6 +176,11 @@ const Admin = (() => {
             ?.addEventListener('change', (e) => switchBar(e.target.value));
         document.getElementById('admin-keygen-btn')
             ?.addEventListener('click', generate);
+        document.getElementById('admin-keys-refresh')
+            ?.addEventListener('click', loadAllKeys);
+        document.querySelectorAll('#admin-keys-filter .admin-filter-chip').forEach(c => {
+            c.addEventListener('click', () => setFilter(c.dataset.filter));
+        });
     }
 
     return { init, open, close };
