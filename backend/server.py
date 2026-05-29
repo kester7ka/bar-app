@@ -90,16 +90,18 @@ def _dummy_hash() -> str:
 @app.after_request
 def add_headers(resp):
     # CORS — берём из ENV. Для разработки '*', для прода — список доменов.
+    # Сравнение терпимо к лишнему слешу на конце (частая опечатка в настройках).
     origin = request.headers.get("Origin", "")
     if CORS_ORIGINS == "*":
         resp.headers["Access-Control-Allow-Origin"] = "*"
-    else:
-        allowed = {o.strip() for o in CORS_ORIGINS.split(",") if o.strip()}
-        if origin in allowed:
+    elif origin:
+        allowed = {o.strip().rstrip("/") for o in CORS_ORIGINS.split(",") if o.strip()}
+        if origin.rstrip("/") in allowed:
             resp.headers["Access-Control-Allow-Origin"] = origin
             resp.headers["Vary"] = "Origin"
     resp.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
     resp.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+    resp.headers["Access-Control-Max-Age"] = "86400"
 
     # Базовые security-заголовки.
     resp.headers.setdefault("X-Content-Type-Options", "nosniff")
