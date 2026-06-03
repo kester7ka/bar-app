@@ -541,6 +541,39 @@ def delete_position(pid):
 
 # ----------------- Bars (read only) -----------------
 
+@app.get("/api/schedule/xlsx")
+def schedule_xlsx():
+    """Прокси для xlsx-таблицы графика на Яндекс.Диске.
+    Браузер из GitHub Pages не может скачать downloader.disk.yandex.ru напрямую
+    из-за CORS — ходим за файлом сами и отдаём с нашими CORS-заголовками.
+    """
+    import json as _json
+    import urllib.parse
+    import urllib.request
+    from flask import Response
+
+    public_key = "https://disk.360.yandex.ru/d/YPIq80g1M7G1SA"
+    meta_url = (
+        "https://cloud-api.yandex.net/v1/disk/public/resources/download"
+        "?public_key=" + urllib.parse.quote(public_key)
+    )
+    try:
+        with urllib.request.urlopen(meta_url, timeout=15) as r:
+            href = _json.loads(r.read().decode("utf-8")).get("href")
+        if not href:
+            return _err("Не получили ссылку на файл", HTTPStatus.BAD_GATEWAY)
+        with urllib.request.urlopen(href, timeout=30) as r:
+            data = r.read()
+        return Response(
+            data,
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Cache-Control": "public, max-age=900"},
+        )
+    except Exception:
+        logger.exception("schedule xlsx proxy failed")
+        return _err("Не удалось получить таблицу", HTTPStatus.BAD_GATEWAY)
+
+
 @app.get("/api/bars")
 def list_bars():
     with connect() as conn:

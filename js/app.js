@@ -52,13 +52,22 @@ const Boot = (() => {
     document.addEventListener(ev, (e) => e.preventDefault(), { passive: false });
 });
 let __lastTouchEnd = 0;
+const __FORM_TAGS = 'input, textarea, select, button, a, label, [contenteditable]';
 document.addEventListener('touchend', (e) => {
     const now = Date.now();
-    if (now - __lastTouchEnd <= 350) e.preventDefault();
+    // Защита от двойного-тап-зума. НО НЕ для полей ввода и кликабельного —
+    // иначе на Android тап по input приводит к preventDefault и клавиатура
+    // мгновенно закрывается, не успев толком открыться.
+    if (now - __lastTouchEnd <= 350) {
+        const t = e.target;
+        if (!(t && t.closest && t.closest(__FORM_TAGS))) {
+            e.preventDefault();
+        }
+    }
     __lastTouchEnd = now;
 }, { passive: false });
 
-// Блокируем многоточечные касания (pinch) тоже на уровне touchmove
+// Pinch — только реально многоточечный жест. Один палец на input не трогаем.
 document.addEventListener('touchmove', (e) => {
     if (e.touches.length > 1) e.preventDefault();
 }, { passive: false });

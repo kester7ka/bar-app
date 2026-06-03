@@ -92,7 +92,8 @@
     background: var(--surface-2);
     border: 1px solid transparent;
     border-radius: var(--radius-sm);
-    font-size: 15px;
+    /* 16px — чтобы iOS не зумил при фокусе */
+    font-size: 16px;
     color: var(--text);
     outline: none;
     font-family: inherit;

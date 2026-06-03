@@ -10,8 +10,9 @@
 // к конкретному бару, и chip-селектор исчезает (см. SchedulePrefs.lockBar).
 
 const Schedule = (() => {
-    const PUBLIC_KEY = 'https://disk.360.yandex.ru/d/YPIq80g1M7G1SA';
-    const API_URL = 'https://cloud-api.yandex.net/v1/disk/public/resources/download';
+    // Источник графика — публичная xlsx-таблица на Яндекс.Диске.
+    // Фронт за ней ходит через наш бэк (/api/schedule/xlsx) — это убирает
+    // CORS-проблемы и прячет ключ диска на сервере.
     const CACHE_KEY = 'bar-app:schedule-cache:v4';
     const CACHE_TTL_MS = 30 * 60 * 1000; // 30 минут
 
@@ -59,14 +60,14 @@ const Schedule = (() => {
     };
 
     // -------- Загрузка xlsx --------
+    // Идём через наш бэк (Api.BASE/api/schedule/xlsx). Это убирает CORS-проблемы
+    // с Яндекс.Диском и работает одним запросом вместо двух.
     async function fetchWorkbook() {
-        const r = await fetch(`${API_URL}?public_key=${encodeURIComponent(PUBLIC_KEY)}`);
-        if (!r.ok) throw new Error('Не удалось получить ссылку на файл');
-        const { href } = await r.json();
-        const fileResp = await fetch(href);
-        if (!fileResp.ok) throw new Error('Не удалось скачать файл');
+        const url = `${Api.BASE}/api/schedule/xlsx`;
+        const fileResp = await fetch(url);
+        if (!fileResp.ok) throw new Error('Сервер не отдал таблицу (бэкенд лежит?)');
         const buf = await fileResp.arrayBuffer();
-        if (typeof XLSX === 'undefined') throw new Error('SheetJS не загружен');
+        if (typeof XLSX === 'undefined') throw new Error('Библиотека таблиц ещё грузится — попробуй ещё раз');
         return XLSX.read(buf, { type: 'array' });
     }
 
