@@ -29,6 +29,8 @@ def _migrate(conn) -> None:
         conn.execute("ALTER TABLE positions ADD COLUMN production_date TEXT")
     if "closed_shelf_days" not in cols:
         conn.execute("ALTER TABLE positions ADD COLUMN closed_shelf_days INTEGER")
+    if "honest_mark" not in cols:
+        conn.execute("ALTER TABLE positions ADD COLUMN honest_mark TEXT")
 
     ucols = {r[1] for r in conn.execute("PRAGMA table_info(users)")}
     if "is_admin" not in ucols:
@@ -102,6 +104,7 @@ def row_to_position(row: sqlite3.Row) -> dict:
         "category": row["category"],
         "production_date": row["production_date"] if "production_date" in keys else None,
         "closed_shelf_days": row["closed_shelf_days"] if "closed_shelf_days" in keys else None,
+        "honest_mark": row["honest_mark"] if "honest_mark" in keys else None,
         "expiry_closed": row["expiry_closed"],
         "shelf_open_days": row["shelf_open_days"],
         "is_open": bool(row["is_open"]),

@@ -348,12 +348,12 @@ def create_position():
             conn.execute(
                 """INSERT INTO positions
                    (id, bar_id, tob, name, category, production_date, closed_shelf_days,
-                    expiry_closed, shelf_open_days, is_open, opened_at, created_by)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    expiry_closed, shelf_open_days, is_open, opened_at, honest_mark, created_by)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (pid, g.bar_id, payload["tob"], payload["name"], payload["category"],
                  payload["production_date"], payload["closed_shelf_days"],
                  payload["expiry_closed"], payload["shelf_open_days"],
-                 payload["is_open"], opened_at, g.user_id),
+                 payload["is_open"], opened_at, payload.get("honest_mark"), g.user_id),
             )
         except Exception:
             logger.exception("create_position failed user=%s", g.user_id)
@@ -383,12 +383,12 @@ def update_position(pid):
                 """UPDATE positions SET
                        tob=?, name=?, category=?,
                        production_date=?, closed_shelf_days=?, expiry_closed=?,
-                       shelf_open_days=?, is_open=?, opened_at=?
+                       shelf_open_days=?, is_open=?, opened_at=?, honest_mark=?
                    WHERE id = ? AND bar_id = ?""",
                 (payload["tob"], payload["name"], payload["category"],
                  payload["production_date"], payload["closed_shelf_days"],
                  payload["expiry_closed"], payload["shelf_open_days"],
-                 payload["is_open"], opened_at, pid, g.bar_id),
+                 payload["is_open"], opened_at, payload.get("honest_mark"), pid, g.bar_id),
             )
         except Exception:
             logger.exception("update_position failed user=%s pid=%s", g.user_id, pid)
@@ -469,6 +469,93 @@ def delete_position(pid):
     with connect() as conn:
         conn.execute("DELETE FROM positions WHERE id = ? AND bar_id = ?", (pid, g.bar_id))
     return "", HTTPStatus.NO_CONTENT
+
+
+HONEST_MARK_URL = os.environ.get(
+    "HONEST_MARK_URL",
+    "https://mobile.api.crpt.ru/mobile/check",
+)
+HONEST_MARK_SOLD_STATUSES = {
+    "RETIRED", "SOLD", "WITHDRAWN", "DECOMMISSIONED",
+    "OUT_OF_CIRCULATION", "DISPOSED",
+}
+
+
+def _hz_is_sold(data):
+    if not isinstance(data, dict):
+        return False
+    for key in ("status", "statusEx", "code_status", "circulation_status",
+                "cisStatus", "documentStatus"):
+        val = data.get(key)
+        if isinstance(val, str) and val.upper() in HONEST_MARK_SOLD_STATUSES:
+            return True
+    for key in ("isWithdrawn", "isRetired", "isSold", "sold",
+                "withdrawn", "retired"):
+        if data.get(key) is True:
+            return True
+    for nested in ("cis", "cisInfo", "code_data", "data"):
+        inner = data.get(nested)
+        if isinstance(inner, dict) and _hz_is_sold(inner):
+            return True
+    return False
+
+
+def _check_honest_marks(codes):
+    if not codes:
+        return []
+    import json as _json
+    import time as _time
+    import urllib.request as _urlreq
+    sold = []
+    for code in codes:
+        try:
+            req = _urlreq.Request(
+                HONEST_MARK_URL,
+                data=_json.dumps({"code": code}).encode("utf-8"),
+                headers={
+                    "Content-Type": "application/json; charset=utf-8",
+                    "Accept": "application/json",
+                    "User-Agent": "BarManager/0.6 (consumer-check)",
+                },
+                method="POST",
+            )
+            with _urlreq.urlopen(req, timeout=10) as r:
+                body = r.read().decode("utf-8", errors="replace")
+            data = _json.loads(body)
+            if _hz_is_sold(data):
+                sold.append(code)
+                logger.info("hzn SOLD: %s", code[:40])
+        except Exception as e:
+            logger.warning("hzn check failed (%s): %s", type(e).__name__, code[:40])
+        _time.sleep(0.25)
+    return sold
+
+
+@app.post("/api/honest-mark/check")
+@require_auth
+def honest_mark_check():
+    with connect() as conn:
+        rows = conn.execute(
+            "SELECT id, honest_mark FROM positions "
+            "WHERE bar_id = ? AND honest_mark IS NOT NULL AND honest_mark != ''",
+            (g.bar_id,),
+        ).fetchall()
+        if not rows:
+            return jsonify({"checked": 0, "removed": 0, "ids": []})
+
+        code_to_id = {r["honest_mark"]: r["id"] for r in rows}
+        sold_codes = _check_honest_marks(list(code_to_id.keys()))
+        sold_ids = [code_to_id[c] for c in sold_codes if c in code_to_id]
+
+        if sold_ids:
+            placeholders = ",".join("?" * len(sold_ids))
+            conn.execute(
+                f"DELETE FROM positions WHERE id IN ({placeholders}) AND bar_id = ?",
+                (*sold_ids, g.bar_id),
+            )
+            logger.info("honest-mark removed %d positions for bar=%s", len(sold_ids), g.bar_id)
+
+    return jsonify({"checked": len(rows), "removed": len(sold_ids), "ids": sold_ids})
 
 @app.get("/api/schedule/xlsx")
 def schedule_xlsx():
@@ -562,6 +649,10 @@ def _validate(payload: dict):
     else:
         shelf_open_days = None
 
+    honest_mark = (payload.get("honest_mark") or "").strip() or None
+    if honest_mark and len(honest_mark) > 256:
+        honest_mark = honest_mark[:256]
+
     return {
         "name": name,
         "tob": tob,
@@ -570,6 +661,7 @@ def _validate(payload: dict):
         "closed_shelf_days": closed_shelf_days,
         "expiry_closed": expiry_closed,
         "shelf_open_days": shelf_open_days,
+        "honest_mark": honest_mark,
         "is_open": 1 if is_open else 0,
     }, None
 

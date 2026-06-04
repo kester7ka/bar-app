@@ -83,6 +83,7 @@ const Storage = (() => {
             closed_shelf_days: position.closed_shelf_days || null,
             expiry_closed: position.expiry_closed,
             shelf_open_days: position.shelf_open_days,
+            honest_mark: position.honest_mark || null,
             is_open: position.is_open
         };
         let saved;

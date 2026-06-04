@@ -69,8 +69,9 @@ CREATE TABLE IF NOT EXISTS positions (
     tob               TEXT    NOT NULL,                          -- 6 цифр
     name              TEXT    NOT NULL,
     category          TEXT    NOT NULL REFERENCES categories(code),
-    production_date   TEXT,                                       -- YYYY-MM-DDTHH:MM, момент производства
-    closed_shelf_days INTEGER,                                    -- срок годности в днях от производства
+    production_date   TEXT,
+    closed_shelf_days INTEGER,
+    honest_mark       TEXT,
     expiry_closed     TEXT    NOT NULL,                           -- production_date + closed_shelf_days
     shelf_open_days   INTEGER,                                    -- срок после вскрытия
     is_open           INTEGER NOT NULL DEFAULT 0,

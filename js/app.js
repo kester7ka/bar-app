@@ -35,6 +35,9 @@ const Boot = (() => {
         Nav.show('home');
         Home.render();
         Profile.render();
+        if (typeof Positions !== 'undefined' && Positions.startHonestMarkPolling) {
+            Positions.startHonestMarkPolling();
+        }
     }
 
     return { start, afterAuth };

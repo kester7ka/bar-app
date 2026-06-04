@@ -238,6 +238,7 @@ const Positions = (() => {
         form.reset();
         resetSteps();
         pendingBarcode = null;
+        showHonestMark(position?.honest_mark || '');
         document.getElementById('modal-title').textContent = position ? 'Редактировать позицию' : 'Новая позиция';
 
         if (position) {
@@ -286,8 +287,8 @@ const Positions = (() => {
         Scanner.open((code) => {
             if (!code) return;
             const saved = loadBarcodes()[code] || null;
-            openModal();           
-            pendingBarcode = code; 
+            openModal();
+            pendingBarcode = code;
             if (saved) {
                 const form = document.getElementById('position-form');
                 form.name.value = saved.name || '';
@@ -298,6 +299,71 @@ const Positions = (() => {
                 Utils.toast('Новый штрихкод — заполни и сохрани');
             }
         });
+    }
+
+    function parseHonestMarkExpiry(code) {
+        const m = String(code).match(/17(\d{2})(\d{2})(\d{2})/);
+        if (!m) return null;
+        const yy = Number(m[1]), mm = Number(m[2]), dd = Number(m[3]);
+        if (mm < 1 || mm > 12 || dd < 1 || dd > 31) return null;
+        const d = new Date(2000 + yy, mm - 1, dd, 12, 0);
+        return isNaN(d.getTime()) ? null : d;
+    }
+
+    function showHonestMark(code) {
+        const inp = document.getElementById('hmark-input');
+        const disp = document.getElementById('hmark-display');
+        const clr = document.getElementById('btn-clear-hmark');
+        if (!inp || !disp) return;
+        inp.value = code || '';
+        disp.value = code ? (code.length > 40 ? code.slice(0, 18) + '…' + code.slice(-12) : code) : '';
+        clr?.classList.toggle('hidden', !code);
+    }
+
+    function applyHonestMarkToForm(code) {
+        showHonestMark(code);
+        const expiry = parseHonestMarkExpiry(code);
+        if (!expiry) return;
+        const pd = document.getElementById('production-date');
+        const pt = document.getElementById('production-time');
+        const cd = document.getElementById('closed-shelf-days');
+        if (pd && pt && cd) {
+            const today = new Date(); today.setHours(12, 0, 0, 0);
+            const diffDays = Math.max(1, Math.round((expiry - today) / 86400000));
+            const pad = (n) => String(n).padStart(2, '0');
+            pd.value = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+            pt.value = '12:00';
+            cd.value = diffDays;
+            if (typeof updateExpiryPreview === 'function') updateExpiryPreview();
+        }
+    }
+
+    function startHonestMarkScan(opts = {}) {
+        Scanner.open((code) => {
+            if (!code) return;
+            if (!opts.skipOpenModal) openModal();
+            applyHonestMarkToForm(code);
+            setCategory('cookies');
+            Utils.toast('Честный Знак привязан');
+        });
+    }
+
+    let _honestPollTimer = null;
+    function startHonestMarkPolling() {
+        if (_honestPollTimer) return;
+        const tick = async () => {
+            try {
+                const r = await Api.post('/api/honest-mark/check');
+                if (r && r.removed > 0) {
+                    await Storage.refresh();
+                    render();
+                    if (typeof Home !== 'undefined') Home.render();
+                    Utils.toast(`Продано: ${r.removed} — удалено из бара`);
+                }
+            } catch {}
+        };
+        _honestPollTimer = setInterval(tick, 25 * 60 * 1000);
+        setTimeout(tick, 30 * 1000);
     }
 
     const handleSubmit = async (e) => {
@@ -357,6 +423,7 @@ const Positions = (() => {
             shelf_open_days: current?.shelf_open_days || null,
             is_open: isOpen,
             opened_at: isOpen ? (current?.opened_at || Utils.today()) : null,
+            honest_mark: (data.get('honest_mark') || '').trim() || current?.honest_mark || null,
             created_at: current?.created_at || new Date().toISOString()
         };
 
@@ -674,6 +741,9 @@ const Positions = (() => {
 
         document.getElementById('btn-add-position').addEventListener('click', () => openModal());
         document.getElementById('btn-scan-position').addEventListener('click', startBarcodeScan);
+        document.getElementById('btn-scan-mark')?.addEventListener('click', () => startHonestMarkScan());
+        document.getElementById('btn-scan-hmark')?.addEventListener('click', () => startHonestMarkScan({ skipOpenModal: true }));
+        document.getElementById('btn-clear-hmark')?.addEventListener('click', () => showHonestMark(''));
         document.getElementById('position-form').addEventListener('submit', handleSubmit);
         document.getElementById('btn-gen-tob').addEventListener('click', () => {
             document.getElementById('tob-input').value = Utils.generateTob();
@@ -788,5 +858,5 @@ const Positions = (() => {
         });
     };
 
-    return { init, render, openDetails, openModal, cardHtml };
+    return { init, render, openDetails, openModal, cardHtml, startHonestMarkPolling };
 })();
