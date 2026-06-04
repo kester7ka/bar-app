@@ -122,20 +122,14 @@
                 
                 <div class="news-card" id="news-card">
                     <div class="news-head">
-                        <span class="news-version">0.6.0</span>
+                        <span class="news-version">0.6.1</span>
                         <h3 class="news-title">Что нового</h3>
                     </div>
                     <ul class="news-list">
-                        <li>
-                            <b>Поддержка Честного Знака</b> — рядом со сканером
-                            штрихкода появилась новая кнопка для DataMatrix-кодов
-                            «Честного Знака». Сканируй код с печенья — приложение
-                            запомнит его, подтянет срок годности из самого кода и
-                            привяжет к позиции. Каждые 25 минут фоновый поллинг
-                            спрашивает у системы статус кодов: если товар уже
-                            продан, позиция автоматически удаляется из бара. Без
-                            ручного контроля — твой остаток всегда актуальный.
-                        </li>
+                        <li><b>Новый сканер</b> — рамка-цель сама «прилипает» к найденному коду, тап по экрану наводит фокус, большая круглая кнопка снизу делает снимок и ищет код на фото если в реальном времени поймать не получилось.</li>
+                        <li><b>Честный Знак — автозаполнение</b> — при сканировании кода приложение тянет с сервиса название товара, дату производства и срок годности. Поля сразу заполняются.</li>
+                        <li>В Позициях товары с привязанным кодом помечены значком <b>ЧЗ</b>.</li>
+                        <li>В Инструментах → Статус сервисов теперь видна связь с Честным Знаком — отдельной строкой рядом с сервером, БД и API.</li>
                     </ul>
                 </div>
             </div>
@@ -631,7 +625,7 @@
                         <div class="about-logo">B</div>
                         <div>
                             <div class="about-title">Bar Manager</div>
-                            <div class="about-version">версия 0.6.0</div>
+                            <div class="about-version">версия 0.6.1</div>
                         </div>
                     </div>
 
@@ -700,8 +694,11 @@
             </header>
             <div class="overlay-body scanner-body">
                 <div class="scanner-viewport" id="scanner-viewport"></div>
-                <p class="scanner-hint">Подержи штрихкод в кадре. Поддерживаются EAN-13, UPC, QR и др.</p>
-                <button type="button" class="btn-step-back scanner-cancel" id="scanner-cancel">Отмена</button>
+                <p class="scanner-hint">Наведи на код — он сам притянется к рамке. Тапни по экрану — фокус. Нажми ⬤ чтобы сфоткать.</p>
+                <div class="scanner-actions">
+                    <button type="button" class="btn-step-back scanner-cancel" id="scanner-cancel">Отмена</button>
+                    <button type="button" class="scanner-snap" id="scanner-snap" aria-label="Сделать снимок"></button>
+                </div>
             </div>
         </div>
 
@@ -845,6 +842,11 @@
                             <span class="svc-dot checking" id="svc-api-dot"></span>
                             <span class="svc-name">API</span>
                             <span class="svc-state" id="svc-api-state">проверяем…</span>
+                        </div>
+                        <div class="status-row">
+                            <span class="svc-dot checking" id="svc-hzn-dot"></span>
+                            <span class="svc-name">Честный Знак</span>
+                            <span class="svc-state" id="svc-hzn-state">проверяем…</span>
                         </div>
                     </div>
                     <div class="status-footer" id="status-footer">—</div>

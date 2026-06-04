@@ -1,6 +1,6 @@
 const Status = (() => {
     const MIN_INTERVAL = 60 * 1000;
-    const SVCS = ['server', 'db', 'api'];
+    const SVCS = ['server', 'db', 'api', 'hzn'];
 
     let lastCheck = 0;            
     let lastResult = null;        
@@ -33,13 +33,19 @@ const Status = (() => {
         const start = performance.now();
         let serverOk = false;
         let dbOk = false;
+        let hznOk = false;
 
         try {
             const data = await Api.get('/api/health');
             serverOk = true;
             dbOk = !!(data && data.db);
-        } catch (e) {
-            
+        } catch (e) {}
+
+        if (serverOk) {
+            try {
+                const h = await Api.get('/api/honest-mark/health');
+                hznOk = !!(h && h.ok);
+            } catch (e) {}
         }
 
         const ms = Math.round(performance.now() - start);
@@ -48,6 +54,7 @@ const Status = (() => {
             server: serverOk,
             db: dbOk,
             api: apiOk,
+            hzn: hznOk,
             ms,
             time: new Date()
         };
@@ -63,6 +70,7 @@ const Status = (() => {
         setSvc('server', r.server ? 'ok' : 'fail');
         setSvc('db',     r.db     ? 'ok' : 'fail');
         setSvc('api',    r.api    ? 'ok' : 'fail');
+        setSvc('hzn',    r.hzn    ? 'ok' : 'fail');
 
         const time = fmtTime(r.time);
         const left = r.server ? `проверено ${time}` : `нет связи · ${time}`;

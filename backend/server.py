@@ -500,28 +500,91 @@ def _hz_is_sold(data):
     return False
 
 
+def _hzn_request(code, timeout=10):
+    import json as _json
+    import urllib.request as _urlreq
+    req = _urlreq.Request(
+        HONEST_MARK_URL,
+        data=_json.dumps({"code": code}).encode("utf-8"),
+        headers={
+            "Content-Type": "application/json; charset=utf-8",
+            "Accept": "application/json",
+            "User-Agent": "BarManager/0.6 (consumer-check)",
+        },
+        method="POST",
+    )
+    with _urlreq.urlopen(req, timeout=timeout) as r:
+        body = r.read().decode("utf-8", errors="replace")
+    return _json.loads(body)
+
+
+def _hzn_extract_info(data):
+    result = {"name": None, "gtin": None, "production_date": None, "expiry_date": None}
+    if not isinstance(data, dict):
+        return result
+
+    def dig(d, *keys):
+        for k in keys:
+            if isinstance(d, dict) and k in d and d[k] not in (None, ""):
+                return d[k]
+        return None
+
+    candidates = [data]
+    for nested in ("cis", "cisInfo", "code_data", "data", "product", "productInfo"):
+        v = data.get(nested) if isinstance(data, dict) else None
+        if isinstance(v, dict):
+            candidates.append(v)
+
+    for c in candidates:
+        if not result["name"]:
+            result["name"] = dig(c, "productName", "name", "title", "shortName")
+        if not result["gtin"]:
+            result["gtin"] = dig(c, "gtin", "GTIN", "productCode")
+        if not result["production_date"]:
+            result["production_date"] = dig(c, "productionDate", "producedDate", "prodDate")
+        if not result["expiry_date"]:
+            result["expiry_date"] = dig(c, "expirationDate", "expiryDate", "expireDate", "exp_date")
+    return result
+
+
+@app.get("/api/honest-mark/health")
+@require_auth
+def hzn_health():
+    import time as _time
+    start = _time.monotonic()
+    try:
+        _hzn_request("test", timeout=5)
+        return jsonify({"ok": True, "ms": int((_time.monotonic() - start) * 1000)})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)[:120], "ms": int((_time.monotonic() - start) * 1000)})
+
+
+@app.post("/api/honest-mark/info")
+@require_auth
+def hzn_info():
+    data = request.get_json(silent=True) or {}
+    code = (data.get("code") or "").strip()
+    if not code:
+        return _err("Нужен код")
+    if len(code) > 256:
+        return _err("Слишком длинный код")
+    try:
+        raw = _hzn_request(code, timeout=10)
+        info = _hzn_extract_info(raw)
+        return jsonify({"ok": True, "info": info})
+    except Exception as e:
+        logger.warning("hzn info failed: %s", str(e)[:80])
+        return jsonify({"ok": False, "error": "Не удалось получить информацию"})
+
+
 def _check_honest_marks(codes):
     if not codes:
         return []
-    import json as _json
     import time as _time
-    import urllib.request as _urlreq
     sold = []
     for code in codes:
         try:
-            req = _urlreq.Request(
-                HONEST_MARK_URL,
-                data=_json.dumps({"code": code}).encode("utf-8"),
-                headers={
-                    "Content-Type": "application/json; charset=utf-8",
-                    "Accept": "application/json",
-                    "User-Agent": "BarManager/0.6 (consumer-check)",
-                },
-                method="POST",
-            )
-            with _urlreq.urlopen(req, timeout=10) as r:
-                body = r.read().decode("utf-8", errors="replace")
-            data = _json.loads(body)
+            data = _hzn_request(code, timeout=10)
             if _hz_is_sold(data):
                 sold.append(code)
                 logger.info("hzn SOLD: %s", code[:40])

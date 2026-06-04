@@ -81,11 +81,15 @@ const Positions = (() => {
         const openInfo = p.is_open ? Utils.openedAgo(p.opened_at) : null;
         const catLabel = Utils.CATEGORIES[p.category] || '';
 
+        const hmarkBadge = p.honest_mark
+            ? '<span class="pos-hmark" title="Честный Знак привязан">ЧЗ</span>'
+            : '';
+
         return `
             <div class="position-card ${cardCls} ${warn ? 'has-warn' : ''}" data-id="${p.id}">
                 <div class="position-status ${statusCls}"></div>
                 <div class="position-info">
-                    <div class="position-name">${Utils.escape(p.name)}</div>
+                    <div class="position-name">${Utils.escape(p.name)}${hmarkBadge}</div>
                     <div class="position-meta">
                         <span class="tob-tag">${Utils.escape(p.tob)}</span>
                         <span class="pos-sep">·</span>
@@ -339,12 +343,39 @@ const Positions = (() => {
     }
 
     function startHonestMarkScan(opts = {}) {
-        Scanner.open((code) => {
+        Scanner.open(async (code) => {
             if (!code) return;
             if (!opts.skipOpenModal) openModal();
             applyHonestMarkToForm(code);
             setCategory('cookies');
-            Utils.toast('Честный Знак привязан');
+            Utils.toast('Честный Знак привязан, тяну инфу…');
+            try {
+                const r = await Api.post('/api/honest-mark/info', { code });
+                if (r && r.ok && r.info) {
+                    const form = document.getElementById('position-form');
+                    if (r.info.name && !form.name.value.trim()) form.name.value = r.info.name;
+                    const pd = document.getElementById('production-date');
+                    const pt = document.getElementById('production-time');
+                    const cd = document.getElementById('closed-shelf-days');
+                    if (r.info.production_date && pd) {
+                        const pdStr = String(r.info.production_date).slice(0, 10);
+                        if (pdStr.length === 10) {
+                            pd.value = pdStr;
+                            if (pt && !pt.value) pt.value = '12:00';
+                        }
+                    }
+                    if (r.info.expiry_date && pd && cd) {
+                        const exp = new Date(String(r.info.expiry_date).slice(0, 10));
+                        const base = new Date(pd.value || Utils.today());
+                        if (!isNaN(exp.getTime()) && !isNaN(base.getTime())) {
+                            const days = Math.max(1, Math.round((exp - base) / 86400000));
+                            cd.value = days;
+                        }
+                    }
+                    if (typeof updateExpiryPreview === 'function') updateExpiryPreview();
+                    Utils.toast('Данные из Честного Знака подтянуты');
+                }
+            } catch {}
         });
     }
 
