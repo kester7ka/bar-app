@@ -1,8 +1,3 @@
-// Часы + погода на главном экране.
-// Источник погоды — Open-Meteo (бесплатный, без ключа).
-// Координаты по умолчанию — Москва. Кэш 30 минут, чтобы не дёргать API.
-// Часы тикают раз в минуту, синхронизированы с реальной минутой.
-
 const Weather = (() => {
     const LAT = 55.7558;
     const LON = 37.6176;
@@ -14,7 +9,7 @@ const Weather = (() => {
 
     let tickHandle = null;
 
-    // ---- Иконки (line-style под стиль приложения) ----
+    
     const ICONS = {
         sun: `<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
             <circle cx="12" cy="12" r="4"/>
@@ -62,7 +57,7 @@ const Weather = (() => {
         return { label: '—', icon: ICONS.cloud };
     }
 
-    // ---- Часы ----
+    
     function renderClock() {
         const clk = document.getElementById('wc-clock');
         const dt  = document.getElementById('wc-date');
@@ -76,7 +71,7 @@ const Weather = (() => {
     function startClock() {
         renderClock();
         if (tickHandle) clearInterval(tickHandle);
-        // выравниваем на ближайшую начавшуюся минуту, потом тикаем каждую минуту
+        
         const ms = (60 - new Date().getSeconds()) * 1000;
         setTimeout(() => {
             renderClock();
@@ -84,7 +79,7 @@ const Weather = (() => {
         }, ms);
     }
 
-    // ---- Погода ----
+    
     function readCache() {
         try {
             const c = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
@@ -144,7 +139,7 @@ const Weather = (() => {
     function init() {
         startClock();
         loadWeather();
-        // тихо обновляем погоду каждые 30 минут, пока вкладка открыта
+        
         setInterval(loadWeather, CACHE_TTL);
     }
 

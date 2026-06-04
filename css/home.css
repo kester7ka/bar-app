@@ -2,7 +2,6 @@
     margin-bottom: 18px;
 }
 
-/* ---- Часы + погода ---- */
 .weather-card {
     display: flex;
     align-items: center;
@@ -179,7 +178,6 @@
     font-weight: 500;
 }
 
-/* Empty state карточка с «галкой все ок» */
 .section-empty {
     background: var(--surface);
     border: 1px solid var(--border);

@@ -6,11 +6,21 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="color-scheme" content="light dark">
+    <meta name="theme-color" content="#18181b" media="(prefers-color-scheme: dark)">
+    <meta name="theme-color" content="#fafafa" media="(prefers-color-scheme: light)">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="apple-touch-icon" href="icons/icon-192.svg">
+    <link rel="icon" href="icons/icon-192.svg" type="image/svg+xml">
     <title>Bar Manager</title>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function () {
+                navigator.serviceWorker.register('sw.js').catch(function () {});
+            });
+        }
+    </script>
 
-    <!-- Применяем сохранённую тему ДО загрузки CSS, иначе на пол-секунды
-         мелькает светлая тема при перезагрузке. Этот блок специально инлайн
-         и без зависимостей — выполняется синхронно перед первым рендером. -->
+    
     <script>
         (function () {
             var dark = false;
@@ -45,7 +55,7 @@
     <link rel="stylesheet" href="css/auth.css">
 </head>
 <body>
-    <!-- Заглушка для альбомной ориентации (только на телефонах) -->
+    
     <div class="rotate-prompt" aria-hidden="true">
         <div class="rotate-icon">
             <svg viewBox="0 0 24 24" width="48" height="48"><rect x="6" y="3" width="12" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="18" r="0.8" fill="currentColor"/><path d="M4 7l-2-2 2-2M2 5h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none" transform="translate(18 0)"/></svg>
@@ -55,7 +65,7 @@
     </div>
 
     <div class="app">
-        <!-- Главная -->
+        
         <section id="home" class="screen active">
             <div class="container">
                 <header class="home-header">
@@ -109,7 +119,7 @@
                     <div class="cards-list" id="expiring-tomorrow"></div>
                 </section>
 
-                <!-- «Что нового» — всегда показываем, без крестика -->
+                
                 <div class="news-card" id="news-card">
                     <div class="news-head">
                         <span class="news-version">0.5.0</span>
@@ -128,7 +138,7 @@
             </div>
         </section>
 
-        <!-- Позиции -->
+        
         <section id="positions" class="screen">
             <div class="container">
                 <header class="screen-header">
@@ -164,7 +174,7 @@
             </div>
         </section>
 
-        <!-- Инструменты -->
+        
         <section id="tools" class="screen">
             <div class="container">
                 <header class="screen-header">
@@ -208,7 +218,7 @@
             </div>
         </section>
 
-        <!-- Профиль -->
+        
         <section id="profile" class="screen">
             <div class="container">
                 <header class="screen-header">
@@ -242,7 +252,7 @@
                     </button>
                 </div>
 
-                <!-- QR-код прихода -->
+                
                 <section class="qr-card">
                     <h3 class="qr-title">QR-код прихода</h3>
 
@@ -276,7 +286,7 @@
             </div>
         </section>
 
-        <!-- Нижняя навигация -->
+        
         <nav class="bottom-nav">
             <button class="nav-btn active" data-screen="home">
                 <svg viewBox="0 0 24 24" width="22" height="22"><path d="M3 11l9-8 9 8v10a1 1 0 01-1 1h-5v-7h-6v7H4a1 1 0 01-1-1V11z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
@@ -296,7 +306,7 @@
             </button>
         </nav>
 
-        <!-- Модалка добавления / редактирования -->
+        
         <div class="modal" id="position-modal">
             <div class="modal-backdrop" data-close></div>
             <div class="modal-sheet">
@@ -308,7 +318,7 @@
                     </button>
                 </header>
                 <form id="position-form" class="modal-body">
-                    <!-- ШАГ 1: основная форма позиции -->
+                    
                     <div class="modal-step" data-step="1">
                         <label class="field">
                             <span>Название</span>
@@ -370,7 +380,7 @@
                         <button type="submit" class="btn-primary" id="step1-submit">Сохранить</button>
                     </div>
 
-                    <!-- ШАГ 2: только при is_open=true (новая позиция) -->
+                    
                     <div class="modal-step hidden" data-step="2">
                         <div class="step-context">
                             <span class="tob-tag" id="step2-tob">000000</span>
@@ -395,7 +405,7 @@
             </div>
         </div>
 
-        <!-- Модалка деталей позиции -->
+        
         <div class="modal" id="detail-modal">
             <div class="modal-backdrop" data-close></div>
             <div class="modal-sheet">
@@ -410,7 +420,7 @@
             </div>
         </div>
 
-        <!-- Оверлей входа / регистрации -->
+        
         <div class="overlay auth-overlay" id="auth-overlay">
             <div class="auth-wrap">
                 <div class="auth-logo">B</div>
@@ -424,7 +434,7 @@
 
                 <div class="auth-error" id="auth-error"></div>
 
-                <!-- Форма регистрации -->
+                
                 <form id="form-register" class="auth-form active" data-form="register" autocomplete="off">
                     <label class="field">
                         <span>Одноразовый ключ</span>
@@ -461,7 +471,7 @@
                     <button type="submit" class="btn-primary">Зарегистрироваться</button>
                 </form>
 
-                <!-- Форма входа -->
+                
                 <form id="form-login" class="auth-form" data-form="login" autocomplete="off">
                     <label class="field">
                         <span>Никнейм</span>
@@ -487,7 +497,7 @@
             </div>
         </div>
 
-        <!-- Модалка политики -->
+        
         <div class="modal" id="policy-modal">
             <div class="modal-backdrop" data-close></div>
             <div class="modal-sheet">
@@ -584,7 +594,7 @@
             </div>
         </div>
 
-        <!-- О приложении -->
+        
         <div class="modal" id="about-modal">
             <div class="modal-backdrop" data-close></div>
             <div class="modal-sheet">
@@ -627,7 +637,7 @@
             </div>
         </div>
 
-        <!-- Ввод/редактирование QR-кода вручную -->
+        
         <div class="modal" id="qr-manual-modal">
             <div class="modal-backdrop" data-close></div>
             <div class="modal-sheet">
@@ -655,7 +665,7 @@
             </div>
         </div>
 
-        <!-- Сканер штрихкодов / QR -->
+        
         <div class="overlay scanner-overlay" id="scanner-overlay">
             <header class="overlay-head">
                 <button class="btn-icon" id="scanner-close" aria-label="Закрыть">
@@ -674,7 +684,7 @@
             </div>
         </div>
 
-        <!-- Открытие позиции: дата/время вскрытия + опционально срок после -->
+        
         <div class="modal" id="open-modal">
             <div class="modal-backdrop" data-close></div>
             <div class="modal-sheet">
@@ -722,7 +732,7 @@
             </div>
         </div>
 
-        <!-- Админ-панель: переключение баров + генерация ключей -->
+        
         <div class="overlay admin-overlay" id="admin-overlay">
             <header class="overlay-head">
                 <button class="btn-icon" id="admin-close" aria-label="Назад">
@@ -783,7 +793,7 @@
             </div>
         </div>
 
-        <!-- Статус сервисов -->
+        
         <div class="overlay status-overlay" id="status-overlay">
             <header class="overlay-head">
                 <button class="btn-icon" id="status-close" aria-label="Назад">
@@ -825,7 +835,7 @@
             </div>
         </div>
 
-        <!-- Калькулятор сроков -->
+        
         <div class="overlay calendar-overlay" id="calendar-overlay">
             <header class="overlay-head">
                 <button class="btn-icon" id="calendar-close" aria-label="Назад">
@@ -886,7 +896,7 @@
             </div>
         </div>
 
-        <!-- Полноэкранный лист графика -->
+        
         <div class="overlay" id="schedule-overlay">
             <header class="overlay-head">
                 <button class="btn-icon" id="schedule-close" aria-label="Назад">
@@ -909,21 +919,20 @@
             </div>
         </div>
 
-        <!-- Тост -->
+        
         <div class="toast" id="toast"></div>
     </div>
 
-    <!-- SheetJS для парсинга xlsx -->
+    
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <!-- jsQR — распознавание QR-кода из фото -->
+    
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
-    <!-- qrcode-generator — отрисовка нового QR-кода (SVG) -->
+    
     <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
-    <!-- html5-qrcode — сканирование штрихкодов и QR с камеры -->
+    
     <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
-    <!-- Адрес бэкенда на Railway. Для локального теста против своего сервера
-         закомментируй эту строку — фронт сам подставит 127.0.0.1:5000. -->
+    
     <script>window.BAR_APP_API = 'https://bar-app-production-79d1.up.railway.app';</script>
     <script src="js/api.js"></script>
     <script src="js/auth.js"></script>

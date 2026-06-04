@@ -1,6 +1,3 @@
-/* Карточка «Что нового» на главной.
-   Видна один раз для каждой версии — после × ставится флаг в localStorage. */
-
 .news-card {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -37,7 +34,6 @@
     letter-spacing: -0.015em;
     color: var(--text);
 }
-
 
 .news-list {
     margin: 0;

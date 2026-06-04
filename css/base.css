@@ -39,17 +39,16 @@
 html, body {
     height: 100%;
     overflow: hidden;
-    /* запрещаем pinch-zoom на iOS */
+    
     touch-action: pan-y;
     -ms-touch-action: pan-y;
-    /* убираем выделение текста по long-press, как в нативе */
+    
     -webkit-user-select: none;
     user-select: none;
     -webkit-touch-callout: none;
     overscroll-behavior: contain;
 }
 
-/* В полях ввода выделение разрешаем, иначе нельзя править текст */
 input, textarea {
     -webkit-user-select: text;
     user-select: text;
@@ -65,8 +64,8 @@ body {
 }
 
 .app {
-    height: 100vh;            /* fallback для старых браузеров */
-    height: 100dvh;           /* учитывает свернувшуюся адресную строку мобильного */
+    height: 100vh;            
+    height: 100dvh;           
     display: flex;
     flex-direction: column;
     max-width: 480px;
@@ -130,8 +129,6 @@ h2 {
     display: none !important;
 }
 
-/* По умолчанию подсказки/блоки «только для печенья» скрыты —
-   модуль положений показывает их, когда выбрана категория cookies. */
 .show-for-cookies {
     display: none;
 }
@@ -148,13 +145,10 @@ h2 {
     line-height: 1.5;
 }
 
-/* ---- Блок-поворот для альбома на телефонах ---- */
 .rotate-prompt {
     display: none;
 }
 
-/* Активируется только когда устройство явно компактное и в альбоме —
-   на десктопе и планшетах не сработает. */
 @media (orientation: landscape) and (max-height: 500px) {
     .rotate-prompt {
         display: flex;
@@ -272,9 +266,7 @@ h2 {
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.2s ease, transform 0.2s ease;
-    /* Поверх ВСЕГО:
-         bottom-nav (100), оверлей графика/календаря/статуса (250),
-         оверлей авторизации (500), модалки (600). */
+    
     z-index: 9999;
     white-space: nowrap;
     max-width: calc(100vw - 32px);
@@ -287,7 +279,6 @@ h2 {
     transform: translateX(-50%) translateY(0);
 }
 
-/* Скрываем скроллбар, но оставляем функциональность */
 .screen::-webkit-scrollbar {
     width: 0;
     background: transparent;

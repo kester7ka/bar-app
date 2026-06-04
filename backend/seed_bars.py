@@ -1,11 +1,3 @@
-"""Засыпает в БД список баров.
-
-Берёт коды из таблицы графика на Яндекс.Диске (если доступен интернет)
-либо использует встроенный fallback-список, собранный из последней версии файла.
-
-Запуск:
-    python seed_bars.py
-"""
 from __future__ import annotations
 
 import json
@@ -20,7 +12,6 @@ from db import connect, init_db
 PUBLIC_KEY = "https://disk.360.yandex.ru/d/YPIq80g1M7G1SA"
 API = "https://cloud-api.yandex.net/v1/disk/public/resources"
 
-# Известные на момент написания бары. Используются, если интернета нет.
 FALLBACK = [
     {"code": "АВПМ-97",  "short_code": "ПМ97",  "name": "АВПМ-97 Алексеевская", "address": ""},
     {"code": "АВЯР-01",  "short_code": "ЯР01",  "name": "АВЯР-01",              "address": ""},
@@ -36,22 +27,18 @@ FALLBACK = [
     {"code": "АВЗ514",   "short_code": "З514",  "name": "АВ-з514 (круглосуточно)", "address": ""},
 ]
 
-
 def fetch_bars_from_disk() -> Optional[list[dict]]:
-    """Скачивает xlsx и достаёт уникальные шапки баров.
-    Если openpyxl нет — возвращает None и используется fallback.
-    """
     try:
-        import openpyxl  # type: ignore
+        import openpyxl
     except ImportError:
         return None
 
     try:
-        # Получаем download href.
+
         url = f"{API}/download?public_key={urllib.parse.quote(PUBLIC_KEY)}"
         with urllib.request.urlopen(url, timeout=10) as r:
             href = json.loads(r.read())["href"]
-        # Скачиваем файл.
+
         import tempfile
         with urllib.request.urlopen(href, timeout=30) as r, tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False) as f:
             f.write(r.read())
@@ -82,7 +69,6 @@ def fetch_bars_from_disk() -> Optional[list[dict]]:
                 found[key] = {"code": code, "short_code": short, "name": code, "address": ""}
     return list(found.values())
 
-
 def main() -> None:
     init_db()
     bars = fetch_bars_from_disk() or FALLBACK
@@ -101,7 +87,6 @@ def main() -> None:
     with connect() as conn:
         for row in conn.execute("SELECT code, name FROM bars ORDER BY code"):
             print(f"  {row['code']:14} — {row['name']}")
-
 
 if __name__ == "__main__":
     main()

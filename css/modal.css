@@ -1,7 +1,7 @@
 .modal {
     position: fixed;
     inset: 0;
-    z-index: 600; /* выше auth-overlay (500), чтобы политика открывалась поверх */
+    z-index: 600; 
     display: none;
     align-items: flex-end;
     justify-content: center;
@@ -92,7 +92,7 @@
     background: var(--surface-2);
     border: 1px solid transparent;
     border-radius: var(--radius-sm);
-    /* 16px — чтобы iOS не зумил при фокусе */
+    
     font-size: 16px;
     color: var(--text);
     outline: none;
@@ -114,7 +114,6 @@
     padding-right: 36px;
 }
 
-/* ---- Чипы выбора категории ---- */
 .category-chips {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -170,7 +169,6 @@
     font-weight: 600;
 }
 
-/* ---- Шаги модалки (двухшаговая форма для is_open=true) ---- */
 .modal-step {
     display: flex;
     flex-direction: column;
@@ -281,7 +279,6 @@
     letter-spacing: 0.1em;
 }
 
-/* ---- Срок: дата + время + пресеты ---- */
 .expiry-row {
     display: grid;
     grid-template-columns: 1.4fr 1fr;
@@ -335,7 +332,6 @@
     opacity: 0.85;
 }
 
-/* ---- Превью: производство + дни → дата истечения ---- */
 .expiry-preview {
     background: var(--surface-2);
     border: 1px dashed transparent;
@@ -379,7 +375,6 @@
     color: var(--text);
 }
 
-/* Детали позиции */
 .detail-section {
     background: var(--surface-2);
     border-radius: var(--radius-sm);
@@ -434,7 +429,6 @@
     font-weight: 600;
 }
 
-/* Строки сравнения сроков: победителя выделяем, проигравшего — гасим. */
 .detail-row.winner {
     position: relative;
 }
@@ -501,7 +495,6 @@
     border-color: var(--success);
 }
 
-/* О приложении */
 .about-body {
     gap: 18px;
 }

@@ -1,9 +1,3 @@
-// Сканер штрихкодов и QR на основе html5-qrcode.
-// Использование:
-//     Scanner.open((code) => { ... });
-// Колбэк вызывается один раз с распознанной строкой,
-// после чего камера сама закрывается.
-
 const Scanner = (() => {
     let scanner = null;
     let onDetect = null;
@@ -18,14 +12,14 @@ const Scanner = (() => {
         const overlay = document.getElementById('scanner-overlay');
         overlay.classList.add('show');
 
-        // Подождём кадр, чтобы #scanner-viewport получил размеры.
+        
         await new Promise(r => requestAnimationFrame(r));
 
         try {
-            // useBarCodeDetectorIfSupported — задействует нативный BarcodeDetector
-            // браузера (Chromium/Edge). Он распознаёт коды под произвольным углом,
-            // включая повёрнутые на 90°/180° и наклонённые в сторону.
-            // disableFlip: false — пытаемся читать и зеркальные кадры (фронт-камера).
+            
+            
+            
+            
             scanner = new Html5Qrcode('scanner-viewport', {
                 verbose: false,
                 experimentalFeatures: { useBarCodeDetectorIfSupported: true }
@@ -43,7 +37,7 @@ const Scanner = (() => {
                     }
                 },
                 handleSuccess,
-                () => { /* per-frame fail — игнорируем */ }
+                () => {  }
             );
         } catch (e) {
             console.warn('scanner', e);
@@ -54,7 +48,7 @@ const Scanner = (() => {
 
     function handleSuccess(decoded) {
         const cb = onDetect;
-        onDetect = null; // защита от повторных срабатываний
+        onDetect = null; 
         close().then(() => {
             if (cb) cb(decoded);
         });

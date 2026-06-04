@@ -1,4 +1,3 @@
-"""Тонкий слой доступа к SQLite."""
 from __future__ import annotations
 
 import os
@@ -7,45 +6,30 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterator
 
-# Путь к БД можно переопределить через BAR_APP_DB_PATH — на облачном
-# хостинге (Railway/Render) БД должна лежать на постоянном диске (volume),
-# иначе при каждом редеплое данные сотрутся.
 DB_PATH = Path(os.environ.get("BAR_APP_DB_PATH") or (Path(__file__).parent / "bar.db"))
 SCHEMA_PATH = Path(__file__).parent / "schema.sql"
 
-
 def init_db() -> None:
-    """Создаёт таблицы и индексы, если их ещё нет; применяет миграции."""
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     with connect() as conn:
         conn.executescript(SCHEMA_PATH.read_text(encoding="utf-8"))
         _migrate(conn)
 
-
 def _migrate(conn) -> None:
-    """Идемпотентные миграции для старых БД.
 
-    1) Снимаем UNIQUE(bar_id, tob) с positions — TOB не уникальный.
-    2) Дропаем partial-unique индекс idx_positions_one_open — у сиропов
-       теперь может быть до 2 открытых; контроль на стороне сервера.
-    3) Закрываем любое печенье, которое было помечено как открытое —
-       у этой категории «открытость» теперь запрещена.
-    """
-    # Миграция 2: старый partial-unique индекс на одну открытую.
     conn.execute("DROP INDEX IF EXISTS idx_positions_one_open")
-    # Миграция 3: печенье больше не «открывается».
+
     conn.execute(
         "UPDATE positions SET is_open = 0, opened_at = NULL "
         "WHERE category = 'cookies' AND is_open = 1"
     )
-    # Миграция 4: добавляем production_date и closed_shelf_days,
-    # если их нет в существующей таблице.
+
     cols = {r[1] for r in conn.execute("PRAGMA table_info(positions)")}
     if "production_date" not in cols:
         conn.execute("ALTER TABLE positions ADD COLUMN production_date TEXT")
     if "closed_shelf_days" not in cols:
         conn.execute("ALTER TABLE positions ADD COLUMN closed_shelf_days INTEGER")
-    # Миграция 5: флаг администратора у пользователей.
+
     ucols = {r[1] for r in conn.execute("PRAGMA table_info(users)")}
     if "is_admin" not in ucols:
         conn.execute("ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0")
@@ -95,7 +79,6 @@ def _migrate(conn) -> None:
             """
         )
 
-
 @contextmanager
 def connect() -> Iterator[sqlite3.Connection]:
     conn = sqlite3.connect(DB_PATH)
@@ -109,7 +92,6 @@ def connect() -> Iterator[sqlite3.Connection]:
         raise
     finally:
         conn.close()
-
 
 def row_to_position(row: sqlite3.Row) -> dict:
     keys = row.keys()
@@ -127,7 +109,6 @@ def row_to_position(row: sqlite3.Row) -> dict:
         "created_at": row["created_at"],
     }
 
-
 def row_to_bar(row: sqlite3.Row) -> dict:
     return {
         "id": row["id"],
@@ -136,7 +117,6 @@ def row_to_bar(row: sqlite3.Row) -> dict:
         "name": row["name"],
         "address": row["address"],
     }
-
 
 def row_to_user(row: sqlite3.Row) -> dict:
     keys = row.keys()

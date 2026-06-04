@@ -12,7 +12,7 @@ const Utils = (() => {
             return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
         });
 
-    // TOB: всегда 6 цифр (0–9). Уже напечатан на упаковке.
+    
     const generateTob = () => {
         let result = '';
         for (let i = 0; i < 6; i++) result += Math.floor(Math.random() * 10);
@@ -29,17 +29,17 @@ const Utils = (() => {
         return d.toISOString().slice(0, 10);
     };
 
-    // Локальное ISO без таймзоны: 'YYYY-MM-DDTHH:MM'.
-    // Нужно для значений <input type="datetime-local">.
-    // Сохраняет реальное время переданной даты.
+    
+    
+    
     const localISO = (d) => {
         const x = new Date(d);
         const pad = (n) => String(n).padStart(2, '0');
         return `${x.getFullYear()}-${pad(x.getMonth() + 1)}-${pad(x.getDate())}T${pad(x.getHours())}:${pad(x.getMinutes())}`;
     };
 
-    // Приводим строку к виду 'YYYY-MM-DDTHH:MM' (если был только YYYY-MM-DD —
-    // считаем, что срок истекает в 23:59 этого дня).
+    
+    
     const toDateTime = (s) => {
         const str = String(s || '');
         if (str.length >= 16) return str.slice(0, 16);
@@ -47,8 +47,8 @@ const Utils = (() => {
         return str;
     };
 
-    // Эффективный срок годности с учётом вскрытия. Возвращает ISO datetime
-    // (если у позиции была голая дата — считаем, что 23:59 этого дня).
+    
+    
     const effectiveExpiry = (position) => {
         const closed = toDateTime(position.expiry_closed);
         if (position.is_open && position.opened_at && position.shelf_open_days) {
@@ -58,12 +58,12 @@ const Utils = (() => {
         return closed;
     };
 
-    // Только дата (YYYY-MM-DD) из строки даты или datetime.
+    
     const dateOnly = (s) => String(s || '').slice(0, 10);
 
     const daysUntil = (dateStr) => {
-        // Сравниваем по дате, без учёта часов. Иначе срок «сегодня в 23:59»
-        // на самом деле «сегодня», а не «завтра».
+        
+        
         const t = new Date(today());
         const d = new Date(dateOnly(dateStr));
         return Math.round((d - t) / (1000 * 60 * 60 * 24));
@@ -90,14 +90,14 @@ const Utils = (() => {
         return d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
     };
 
-    // То же + время, если оно есть в строке (YYYY-MM-DDTHH:MM).
+    
     const formatDateTimeFull = (dateStr) => {
         const s = String(dateStr || '');
         const date = formatDateFull(s);
         if (s.length < 16) return date;
         const time = s.slice(11, 16);
-        // не показываем «:00» если время = 23:59 (конец дня по умолчанию) — но
-        // показываем все остальные. 23:59 — наш дефолт, его опускаем.
+        
+        
         if (time === '23:59') return date;
         return `${date} · ${time}`;
     };

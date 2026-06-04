@@ -19,8 +19,8 @@ const Profile = (() => {
         document.body.classList.toggle('is-admin',   !!Auth.isAdmin?.());
         if (typeof QR !== 'undefined') QR.render();
 
-        // Не показываем name второй раз, если он совпадает с code (так бывает,
-        // когда seed_bars не нашёл осмысленного «человеческого» названия).
+        
+        
         const code = (b.code || '').trim();
         const name = (b.name || '').trim();
         const same = !name || name.toLowerCase() === code.toLowerCase();

@@ -1,14 +1,10 @@
-// Тонкая обёртка над fetch: автоматически подставляет токен и базовый URL.
-// Базовый URL берётся из window.BAR_APP_API (если задан до загрузки app.js),
-// либо предполагаем тот же origin.
-
 const Api = (() => {
-    // Куда стучаться:
-    //   1) если задан window.BAR_APP_API — берём его (включая пустую строку
-    //      для same-origin);
-    //   2) если открыли index.html напрямую с диска (file://) — пробуем
-    //      локальный сервер на 127.0.0.1:5000;
-    //   3) иначе same-origin (для деплоя, где Flask отдаёт и фронт, и API).
+    
+    
+    
+    
+    
+    
     const BASE = (() => {
         if (typeof window !== 'undefined' && typeof window.BAR_APP_API === 'string') {
             return window.BAR_APP_API;
@@ -34,7 +30,7 @@ const Api = (() => {
         if (body !== undefined) headers['Content-Type'] = 'application/json';
         const t = getToken();
         if (t) headers['Authorization'] = `Bearer ${t}`;
-        // Админ может смотреть другой бар — сервер учитывает это только для админов.
+        
         const barOverride = getBarOverride();
         if (barOverride) headers['X-Bar-Id'] = barOverride;
         let resp;

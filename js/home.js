@@ -1,12 +1,12 @@
 const Home = (() => {
     const render = () => {
-        // Приветствие: если пользователь указал имя — используем его,
-        // иначе ник, иначе просто «Доброе утро».
+        
+        
         const u = (typeof Auth !== 'undefined') ? Auth.user() : null;
         const name = (u?.display_name || u?.username || '').trim();
         const base = Utils.greeting();
         document.getElementById('greeting').textContent = name ? `${base}, ${name}` : base;
-        // Дата теперь отображается в карточке часов/погоды (см. Weather.init).
+        
 
         const list = Storage.list();
         const today = Utils.today();
@@ -23,7 +23,7 @@ const Home = (() => {
         const expiringTomorrow = [];
 
         list.forEach(p => {
-            // effectiveExpiry теперь datetime — сравниваем по дню.
+            
             const expDate = Utils.dateOnly(Utils.effectiveExpiry(p));
             if (expDate <= today) expiringToday.push(p);
             else if (expDate === tomorrow) expiringTomorrow.push(p);
@@ -70,8 +70,8 @@ const Home = (() => {
         });
     };
 
-    // Считаем мапы предупреждений (сиропы с дубликатом TOB / двумя открытыми),
-    // чтобы карточки на главной показывали те же бейджи, что и в списке позиций.
+    
+    
     function buildCardCtx() {
         const list = Storage.list();
         const syrupDups = {};

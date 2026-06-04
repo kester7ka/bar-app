@@ -1,18 +1,14 @@
-// Статус сервисов: сервер, БД, API.
-// Запрос — не чаще раза в минуту, чтобы не нагружать бэкенд.
-// При повторном открытии в течение минуты показывает закэшированный результат.
-
 const Status = (() => {
     const MIN_INTERVAL = 60 * 1000;
     const SVCS = ['server', 'db', 'api'];
 
-    let lastCheck = 0;            // timestamp последней реальной проверки
-    let lastResult = null;        // последний результат проверки
+    let lastCheck = 0;            
+    let lastResult = null;        
     let _checking = false;
 
     function open() {
         document.getElementById('status-overlay').classList.add('show');
-        // Автопроверка только если данных нет либо они «протухли».
+        
         if (lastResult && Date.now() - lastCheck < MIN_INTERVAL) {
             renderResult(lastResult);
         } else {
@@ -43,7 +39,7 @@ const Status = (() => {
             serverOk = true;
             dbOk = !!(data && data.db);
         } catch (e) {
-            // нет связи / 5xx — оставляем флаги false
+            
         }
 
         const ms = Math.round(performance.now() - start);
@@ -81,7 +77,7 @@ const Status = (() => {
         else if (someFail) setSummary('частичные проблемы');
     }
 
-    // Ручное обновление с лимитом частоты.
+    
     function manualRefresh() {
         const elapsed = Date.now() - lastCheck;
         if (elapsed < MIN_INTERVAL) {

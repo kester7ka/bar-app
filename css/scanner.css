@@ -1,5 +1,3 @@
-/* Оверлей сканера штрихкода — тёмная тема внутри, чтобы камера выделялась */
-
 .scanner-overlay {
     background: #000;
     color: #fff;
@@ -46,7 +44,6 @@
     overflow: hidden;
 }
 
-/* html5-qrcode внутри сам создаёт <video> и подсветку «рамки». */
 .scanner-viewport video {
     width: 100% !important;
     height: 100% !important;
@@ -58,7 +55,6 @@
     background: transparent !important;
 }
 
-/* подсветка рамки от html5-qrcode */
 .scanner-viewport #qr-shaded-region {
     border: 2px solid rgba(255, 255, 255, 0.9) !important;
     border-radius: 12px;

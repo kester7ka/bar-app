@@ -1,9 +1,3 @@
-// Калькулятор сроков годности.
-// Никаких связей с реальными позициями — это просто помощник:
-// «Я вскрыл/приготовил в момент X, срок жизни Y дн / Z ч / W мин.
-//  Когда это испортится?»
-// Точность до минуты — есть только здесь.
-
 const Calendar = (() => {
     const MONTHS_GEN = [
         'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
@@ -18,7 +12,7 @@ const Calendar = (() => {
 
     function open() {
         el('calendar-overlay').classList.add('show');
-        // при первом открытии — ставим «сейчас» и +1 день по умолчанию
+        
         if (!el('cal-start').value) {
             el('cal-start').value = Utils.localISO(new Date());
             el('cal-days').value = 1;
@@ -38,7 +32,7 @@ const Calendar = (() => {
         compute();
     }
 
-    // ------ ввод ------
+    
 
     function setStart(kind) {
         const d = new Date();
@@ -49,13 +43,13 @@ const Calendar = (() => {
         compute();
     }
 
-    // Прибавить к текущему сроку «d:h:m».
+    
     function addPreset(spec) {
         const [d, h, m] = spec.split(':').map(n => Number(n) || 0);
         const days = clamp(num(el('cal-days').value) + d, 0, 99999);
         const hours = num(el('cal-hours').value) + h;
         const mins  = num(el('cal-mins').value)  + m;
-        // нормализуем переполнение
+        
         const totalMin = days * 24 * 60 + hours * 60 + mins;
         const nd = Math.floor(totalMin / (24 * 60));
         const rest = totalMin % (24 * 60);
@@ -67,7 +61,7 @@ const Calendar = (() => {
         compute();
     }
 
-    // ------ вычисление ------
+    
 
     function compute() {
         const startStr = el('cal-start').value;
@@ -146,12 +140,12 @@ const Calendar = (() => {
     function num(v) { return Math.max(0, Math.floor(Number(v) || 0)); }
     function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 
-    // ------ init ------
+    
     function init() {
         el('calendar-close').addEventListener('click', close);
         el('calendar-reset').addEventListener('click', reset);
 
-        // живой пересчёт
+        
         ['cal-start', 'cal-days', 'cal-hours', 'cal-mins'].forEach(id => {
             el(id).addEventListener('input', compute);
             el(id).addEventListener('change', compute);

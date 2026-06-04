@@ -1,14 +1,3 @@
-// QR-код прихода. Хранится в localStorage по user_id, поэтому работает
-// и в офлайне, и не зависит от перезапусков сервера.
-// Логика:
-//   1. Если данных нет → показываем 2 кнопки: «Загрузить фото» / «Ввести вручную».
-//   2. При загрузке фото — распознаём через jsQR. Если распозналось → сохраняем
-//      строку и перерисовываем QR заново через qrcode-generator (SVG).
-//      Поэтому это НЕ фото, а сгенерированный код — его не «сфоткаешь» как
-//      оригинал; он отображается из расшифрованной строки.
-//   3. Если фото не читается → подсказка про ручной ввод.
-//   4. Можно «Изменить» (тот же диалог) или «Удалить».
-
 const QR = (() => {
     const KEY_PREFIX = 'bar-app:qr:';
 
@@ -45,7 +34,7 @@ const QR = (() => {
             return;
         }
         try {
-            // typeNumber=0 — автоматический подбор размера. ECC level 'M'.
+            
             const qr = qrcode(0, 'M');
             qr.addData(data);
             qr.make();
@@ -55,7 +44,7 @@ const QR = (() => {
         }
     }
 
-    // ----- Распознавание фото -----
+    
     async function handleFile(file) {
         if (!file) return;
         if (typeof jsQR === 'undefined') {
@@ -98,7 +87,7 @@ const QR = (() => {
         });
     }
 
-    // Уменьшаем картинку до разумного размера — jsQR быстрее справляется.
+    
     function decodeFromImage(img) {
         const MAX = 1200;
         let w = img.naturalWidth, h = img.naturalHeight;
@@ -117,7 +106,7 @@ const QR = (() => {
         return code ? code.data : null;
     }
 
-    // ----- Ручной ввод -----
+    
     function openManual() {
         const input = document.getElementById('qr-manual-input');
         input.value = load() || '';

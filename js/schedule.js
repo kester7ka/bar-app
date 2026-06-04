@@ -1,26 +1,15 @@
-// Экран «График смен».
-// Источник: публичный xlsx на Яндекс.Диске. Тянем download-href через
-// cloud-api.yandex.net, скачиваем файл, парсим SheetJS-ом в браузере.
-// Структура файла:
-//   13 листов = месяцы. Внутри листа идут блоки баров:
-//     [строка с шапкой бара, e.g. "АВПМ - 97 (8:00 до 22:00) АЛЕКСЕЕВСКАЯ"]
-//     [строка с заголовками столбцов: №, Табельный, №графика, ФИО, тел, число, дн.недели, 1..31, итого, аванс]
-//     [строки сотрудников: цифры/буквы в днях = смена; пусто/о = выходной]
-// Будущее: когда появится вход по одноразовому ключу — ключ привязан
-// к конкретному бару, и chip-селектор исчезает (см. SchedulePrefs.lockBar).
-
 const Schedule = (() => {
-    // Источник графика — публичная xlsx-таблица на Яндекс.Диске.
-    // Фронт за ней ходит через наш бэк (/api/schedule/xlsx) — это убирает
-    // CORS-проблемы и прячет ключ диска на сервере.
+    
+    
+    
     const CACHE_KEY = 'bar-app:schedule-cache:v4';
-    const CACHE_TTL_MS = 30 * 60 * 1000; // 30 минут
+    const CACHE_TTL_MS = 30 * 60 * 1000; 
 
-    // Приблизительные ставки. Старший определяется автоматически по колонке «Должность».
+    
     const RATES = { regular: 420, senior: 440 };
 
-    // «Ст. бармен», «Ст.Б», «Старший бармен», «старший» — всё засчитывается как старший.
-    // «Бармен», «Официант», «Помощник» — обычная ставка.
+    
+    
     const SENIOR_TITLE_RE = /(^|\s)ст\.?(\s|б)|старш/i;
 
     function isSeniorTitle(title) {
@@ -39,12 +28,12 @@ const Schedule = (() => {
     ];
 
     let state = {
-        months: [],   // [{ key, label, bars: [{ name, code, employees: [{ name, phone?, days: {1: 'shift', ...} }] }] }]
+        months: [],   
         monthIdx: 0,
         barIdx: 0
     };
 
-    // -------- Кэш --------
+    
     const readCache = () => {
         try {
             const c = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
@@ -59,9 +48,9 @@ const Schedule = (() => {
         } catch {}
     };
 
-    // -------- Загрузка xlsx --------
-    // Идём через наш бэк (Api.BASE/api/schedule/xlsx). Это убирает CORS-проблемы
-    // с Яндекс.Диском и работает одним запросом вместо двух.
+    
+    
+    
     async function fetchWorkbook() {
         const url = `${Api.BASE}/api/schedule/xlsx`;
         const fileResp = await fetch(url);
@@ -71,20 +60,20 @@ const Schedule = (() => {
         return XLSX.read(buf, { type: 'array' });
     }
 
-    // -------- Парсинг одного листа --------
-    // Эвристики:
-    //  - название бара начинается с "АВ" и обычно содержит "(" с временем работы,
-    //    либо это короткий код (АВКШ78, АВНП и т.п.)
-    //  - заголовок "число" указывает на строку с днями месяца — соседние ячейки
-    //    справа содержат 1..31
-    //  - после строки с днями идут сотрудники; ФИО — самая длинная буквенная
-    //    ячейка слева от первой колонки дней
+    
+    
+    
+    
+    
+    
+    
+    
     const BAR_PREFIX = /^АВ/i;
     const SHIFT_OFF = new Set(['', 'о', 'О', 'в', 'В', '-', '—', null, undefined]);
 
-    // Многобуквенные статусы — каждая буква разнесена по соседним дням.
-    // Ключ — слово (как оно складывается из соседних ячеек),
-    // kind — наш внутренний тип, label — что показывать пользователю.
+    
+    
+    
     const STATUS_WORDS = [
         { key: 'ЗС',           kind: 'vacation-unpaid', label: 'за свой счёт' },
         { key: 'ОТПУСК',       kind: 'vacation-paid',   label: 'отпуск' },
@@ -110,8 +99,8 @@ const Schedule = (() => {
         'unknown':          'не распознано'
     };
 
-    // Множество всех известных бар-кодов в нормализованном виде (без АВ, без знаков).
-    // Заполняется при парсинге книги.
+    
+    
     let BAR_SHORT_CODES = new Set();
 
     function normCode(s) {
@@ -128,7 +117,7 @@ const Schedule = (() => {
         if (s.length < 4 || s.length > 80) return false;
         if (!BAR_PREFIX.test(s)) return false;
         if (s.toUpperCase() === 'АВАНС') return false;
-        // Отсекаем "АВГУСТ 2025" и подобные — это название месяца.
+        
         const firstWord = s.split(/\s+/)[0].toUpperCase();
         if (MONTH_HEADERS.has(firstWord)) return false;
         return true;
@@ -138,15 +127,15 @@ const Schedule = (() => {
         const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', blankrows: false });
         const bars = [];
         let current = null;
-        let dayCols = null;       // { colIndex: dayNumber }
-        let nameCol = null;       // индекс колонки с ФИО
-        let titleCol = null;      // индекс колонки с «Должность»
+        let dayCols = null;       
+        let nameCol = null;       
+        let titleCol = null;      
 
         for (let r = 0; r < rows.length; r++) {
             const row = rows[r];
             if (!row || row.length === 0) continue;
 
-            // Поиск шапки бара (обычно ячейка склеена, первая непустая)
+            
             const firstNonEmpty = row.find(c => typeof c === 'string' && c.trim().length > 0);
             if (looksLikeBarHeader(firstNonEmpty)) {
                 if (current && current.employees.length) bars.push(current);
@@ -157,15 +146,15 @@ const Schedule = (() => {
                 continue;
             }
 
-            // Поиск строки с заголовками "число" / "1..31"
+            
             if (!dayCols) {
                 const idx = row.findIndex(c => String(c).trim().toLowerCase() === 'число');
                 if (idx >= 0) {
                     dayCols = {};
-                    // Берём ТОЛЬКО последовательные дни месяца: 1, 2, 3, …
-                    // Останавливаемся, как только встретили «Итого», «Аванс» или
-                    // любую несоответствующую ячейку. Без этого случайные числа
-                    // в правых колонках (totals, hour counts) попадали в список дней.
+                    
+                    
+                    
+                    
                     let expected = 1;
                     for (let c = idx + 1; c < row.length; c++) {
                         const v = Number(row[c]);
@@ -174,11 +163,11 @@ const Schedule = (() => {
                             expected++;
                             if (expected > 31) break;
                         } else if (expected > 1) {
-                            // Уже начали собирать дни — последовательность сломалась.
+                            
                             break;
                         }
-                        // expected === 1: ещё не нашли первый день,
-                        // могут быть пустые ячейки до начала — продолжаем искать.
+                        
+                        
                     }
                     nameCol = guessNameCol(rows, r - 1, idx);
                     titleCol = guessTitleCol(rows, r, idx);
@@ -187,7 +176,7 @@ const Schedule = (() => {
                 continue;
             }
 
-            // Строка сотрудника
+            
             if (current && dayCols && nameCol != null) {
                 const fio = String(row[nameCol] || '').trim();
                 if (!fio || fio.length < 4 || /^\d+$/.test(fio)) continue;
@@ -209,7 +198,7 @@ const Schedule = (() => {
     }
 
     function guessTitleCol(rows, headerRow, dayColStart) {
-        // Ищем заголовок «Должность» в окрестных строках.
+        
         for (let r = Math.max(0, headerRow - 3); r <= headerRow + 1 && r < rows.length; r++) {
             const row = rows[r] || [];
             for (let c = 0; c < dayColStart; c++) {
@@ -217,8 +206,8 @@ const Schedule = (() => {
                 if (v.includes('ДОЛЖНОСТ')) return c;
             }
         }
-        // Запасной вариант: ищем колонку с короткими словами, содержащими
-        // «бармен» / «официант» / «ст.» в нескольких строках ниже.
+        
+        
         const dataStart = headerRow + 1;
         const TITLE_RE = /бармен|официант|помощ|бариста|ст\.|старш/i;
         const scores = [];
@@ -235,7 +224,7 @@ const Schedule = (() => {
     }
 
     function guessNameCol(rows, headerRow, dayColStart) {
-        // Ищем явный заголовок "ФИО" / "СОТРУДНИК" в соседних строках.
+        
         for (let r = Math.max(0, headerRow - 1); r <= headerRow + 1 && r < rows.length; r++) {
             const row = rows[r] || [];
             for (let c = 0; c < dayColStart; c++) {
@@ -243,8 +232,8 @@ const Schedule = (() => {
                 if (v.includes('ФИО') || v.includes('СОТРУДНИК')) return c;
             }
         }
-        // Иначе — оцениваем 10 следующих строк: имя — длинный текст с пробелом
-        // и без цифр в начале. Колонки с № / Телефон / кодами набирают мало.
+        
+        
         const dataStart = headerRow + 1;
         const scores = [];
         for (let c = 0; c < dayColStart; c++) {
@@ -252,8 +241,8 @@ const Schedule = (() => {
             for (let r = dataStart; r < Math.min(rows.length, dataStart + 12); r++) {
                 const v = String((rows[r] || [])[c] || '').trim();
                 if (!v) continue;
-                if (/^\d/.test(v)) continue;                  // числа / телефоны / коды
-                if (/^[+()\d\s\-]+$/.test(v)) continue;       // телефон в виде +7-...
+                if (/^\d/.test(v)) continue;                  
+                if (/^[+()\d\s\-]+$/.test(v)) continue;       
                 if (looksLikeBarHeader(v)) continue;
                 const letters = v.replace(/[^A-Za-zА-Яа-яЁё]/g, '').length;
                 const hasSpace = /\s/.test(v);
@@ -274,7 +263,7 @@ const Schedule = (() => {
     }
 
     function makeBar(rawHeader) {
-        // "АВПМ - 97 (8:00 до 22:00) АЛЕКСЕЕВСКАЯ" → code "АВПМ-97", label полный
+        
         const code = rawHeader
             .replace(/\(.*?\)/g, '')
             .replace(/\s+/g, ' ')
@@ -282,9 +271,9 @@ const Schedule = (() => {
         return { name: rawHeader, code, employees: [] };
     }
 
-    // ----- Классификация ячеек -----
+    
 
-    // Распознать слово, собранное из соседних букв (наибольшее совпадение).
+    
     function matchStatus(word) {
         const n = word.replace('Ё', 'Е');
         for (const s of STATUS_WORDS) {
@@ -294,8 +283,8 @@ const Schedule = (() => {
         return null;
     }
 
-    // Превратить { 1: '8', 2: '12', 3: 'З', 4: 'С', 5: 'ПМ58', ... } в
-    // { 1: {kind:'hours', hours:8}, 2: {kind:'hours', hours:12}, 3: {kind:'vacation-unpaid', ...}, ... }
+    
+    
     function classifyDays(rawDays, dayList) {
         const out = {};
         let i = 0;
@@ -308,21 +297,21 @@ const Schedule = (() => {
                 i++; continue;
             }
 
-            // Часы: "8", "12", "10.5", "14ч", "9 ч"
+            
             const numMatch = raw.match(/^(\d+(?:[.,]\d+)?)\s*ч?$/i);
             if (numMatch) {
                 out[d] = { kind: 'hours', hours: parseFloat(numMatch[1].replace(',', '.')), label: raw };
                 i++; continue;
             }
 
-            // Чужой бар: ПМ58, ЯР01, КШ78 и т.п.
+            
             const norm = normCode(raw);
             if (norm.length >= 2 && BAR_SHORT_CODES.has(norm)) {
                 out[d] = { kind: 'other-bar', code: raw, label: raw };
                 i++; continue;
             }
 
-            // Возможно — буква из многодневного статуса.
+            
             if (/^[А-ЯЁа-яёA-Za-z]$/.test(raw)) {
                 let j = i;
                 let word = '';
@@ -354,7 +343,7 @@ const Schedule = (() => {
     }
 
     function dedupeBars(bars) {
-        // Если один и тот же бар появляется несколько раз в листе — склеиваем сотрудников
+        
         const map = new Map();
         for (const b of bars) {
             const key = b.code.toLowerCase();
@@ -371,7 +360,7 @@ const Schedule = (() => {
         return Array.from(map.values());
     }
 
-    // -------- Парсинг всей книги --------
+    
     function parseWorkbook(wb) {
         const months = wb.SheetNames.map(name => {
             const ws = wb.Sheets[name];
@@ -379,19 +368,19 @@ const Schedule = (() => {
             return { key: name, label: prettyMonth(name), bars };
         }).filter(m => m.bars.length > 0);
 
-        // Собираем все известные коды баров (нормализованные, без АВ).
-        // Используется при классификации ячеек как 'other-bar'.
+        
+        
         BAR_SHORT_CODES = new Set();
         for (const m of months) {
             for (const b of m.bars) {
-                const full = normCode(b.code);             // напр. АВПМ97
-                const short = full.replace(/^АВ/, '');     // напр. ПМ97
+                const full = normCode(b.code);             
+                const short = full.replace(/^АВ/, '');     
                 if (full) BAR_SHORT_CODES.add(full);
                 if (short && short.length >= 2) BAR_SHORT_CODES.add(short);
             }
         }
 
-        // Теперь, когда коды собраны, классифицируем дни у каждого сотрудника.
+        
         for (const m of months) {
             for (const b of m.bars) {
                 const days = collectDays(b);
@@ -408,7 +397,7 @@ const Schedule = (() => {
         return name.trim().replace(/\s+/g, ' ');
     }
 
-    // -------- UI --------
+    
     function open() {
         document.getElementById('schedule-overlay').classList.add('show');
         load(false);
@@ -469,8 +458,8 @@ const Schedule = (() => {
 
         document.getElementById('schedule-month-label').textContent = month.label;
 
-        // Обычный пользователь видит график только своего бара.
-        // Админу показываем все бары (он сам выбирает через чипы).
+        
+        
         const lockToBar = Auth.isAuthed?.() && !Auth.isAdmin?.();
         const userBar = lockToBar ? Auth.bar() : null;
         const visibleBars = userBar
@@ -491,8 +480,8 @@ const Schedule = (() => {
         const today = monthMatchesNow(month) ? todayDate.getDate() : null;
         const days = collectDays(bar);
 
-        // Сегодня "работают" — только те, у кого в ячейке часы (число).
-        // Чужой бар / отпуск / больничный / выходной — НЕ показываем.
+        
+        
         const todayPeople = today
             ? bar.employees.filter(e => (e.classified?.[today]?.kind) === 'hours')
             : [];
@@ -536,7 +525,8 @@ const Schedule = (() => {
                             <tr>
                                 <th class="col-name">Сотрудник</th>
                                 ${days.map(d => `<th class="${d === today ? 'today' : ''}">${d}</th>`).join('')}
-                                <th class="col-total">Σ</th>
+                                <th class="col-summary advance">Аванс<span>1–15</span></th>
+                                <th class="col-summary salary">Зарплата<span>весь месяц</span></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -571,28 +561,35 @@ const Schedule = (() => {
         return month.label.toLowerCase().includes(want);
     }
 
-    // Сопоставить бар из таблицы графика с записью пользователя из БД.
+    
     function matchesBar(scheduleBar, userBar) {
         const a = normCode(scheduleBar.code);
         const b = normCode(userBar.code);
         const bShort = normCode(userBar.short_code || '');
-        // ровно совпадение либо userBar.short_code = «короткий» хвост.
+        
         return a === b || (bShort && (a.endsWith(bShort) || a.replace(/^АВ/, '') === bShort));
     }
 
     function collectDays(bar) {
         const set = new Set();
         bar.employees.forEach(e => Object.keys(e.days).forEach(d => set.add(Number(d))));
-        // если по сотрудникам собрать не вышло — берём 1..31
+        
         if (set.size === 0) for (let i = 1; i <= 31; i++) set.add(i);
         return Array.from(set).sort((a, b) => a - b);
     }
 
     function rowHtml(emp, days, today) {
-        const totalHours = days.reduce((sum, d) => {
+        let advance = 0;
+        let salary = 0;
+        for (const d of days) {
             const c = emp.classified?.[d];
-            return c?.kind === 'hours' ? sum + (c.hours || 0) : sum;
-        }, 0);
+            if (c?.kind === 'hours') {
+                const h = c.hours || 0;
+                salary += h;
+                if (d <= 15) advance += h;
+            }
+        }
+        const fmt = (n) => n ? (Math.round(n * 10) / 10).toString() : '';
 
         return `<tr>
             <td class="col-name" title="${Utils.escape(emp.name)}">${Utils.escape(formatName(emp.name))}</td>
@@ -601,14 +598,15 @@ const Schedule = (() => {
                 const title = KIND_LABELS[c.kind] + (c.statusLabel ? ` · ${c.statusLabel}` : '');
                 return `<td class="cell-${c.kind} ${d === today ? 'today' : ''}" title="${Utils.escape(title)}">${Utils.escape(c.label || '')}</td>`;
             }).join('')}
-            <td class="col-total">${totalHours ? Math.round(totalHours * 10) / 10 : ''}</td>
+            <td class="col-summary advance" title="часы за 1–15 (аванс)">${fmt(advance)}</td>
+            <td class="col-summary salary" title="часы за весь месяц (зарплата)">${fmt(salary)}</td>
         </tr>`;
     }
 
     function formatName(full) {
         const parts = full.trim().split(/\s+/);
         if (parts.length < 2) return full;
-        // ИВАНОВА АНАСТАСИЯ → Иванова А.
+        
         const surname = capitalize(parts[0]);
         const initial = parts[1][0];
         return `${surname} ${initial}.`;
@@ -656,11 +654,11 @@ const Schedule = (() => {
         return full.split(/\s+/).map(capitalize).join(' ');
     }
 
-    // Чтобы не дёргать Яндекс.Диск часто, ручной refresh — не чаще раза в минуту.
+    
     let lastRefresh = 0;
     const MIN_REFRESH_INTERVAL = 60 * 1000;
 
-    // -------- init --------
+    
     function init() {
         ['bar-app:schedule-cache', 'bar-app:schedule-cache:v2', 'bar-app:schedule-cache:v3', 'bar-app:senior-set']
             .forEach(k => localStorage.removeItem(k));

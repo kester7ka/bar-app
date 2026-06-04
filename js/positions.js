@@ -6,9 +6,9 @@ const Positions = (() => {
     const render = () => {
         const list = Storage.list();
 
-        // Карта предупреждений для сиропов.
-        //   tobDup[tob]      — сколько сиропов с этим TOB (>1 → нарушение)
-        //   openByName[name] — сколько открытых сиропов с этим названием
+        
+        
+        
         const tobDup = {};
         const openByName = {};
         for (const p of list) {
@@ -44,7 +44,7 @@ const Positions = (() => {
         });
     };
 
-    // Возвращает строку с текстом предупреждения для сиропа или null.
+    
     function syrupWarning(p, tobDup, openByName) {
         if (p.category !== 'syrups') return null;
         const dupTob   = (tobDup[p.tob] || 0) > 1;
@@ -54,8 +54,8 @@ const Positions = (() => {
         return null;
     }
 
-    // Карточка позиции — общая для главной и списка позиций.
-    // ctx = { syrupDups, openByName } — для расчёта предупреждений.
+    
+    
     const cardHtml = (p, ctx = {}) => {
         const tobDup = ctx.syrupDups || {};
         const openByName = ctx.openByName || {};
@@ -105,7 +105,7 @@ const Positions = (() => {
         `;
     };
 
-    // Короткая подсказка под чипами категорий — отражает специфику.
+    
     const CAT_HINTS = {
         ingredients: 'Можно держать <b>сколько угодно открытых</b>. Срок после вскрытия учитывается, если указан.',
         syrups:      '<b>До 2 открытых</b> одновременно. Вторая помечается «⚠ две открытые». Срок после вскрытия учитывается.',
@@ -113,7 +113,7 @@ const Positions = (() => {
         other:       '<b>Без специальных правил</b>: лимит открытых не ограничен.'
     };
 
-    // Прячет/показывает поля и обновляет подсказку под текущую категорию.
+    
     function applyCategoryRules() {
         const form = document.getElementById('position-form');
         const cat = form.category.value;
@@ -132,7 +132,7 @@ const Positions = (() => {
         updateSubmitLabel();
     }
 
-    // Заполняет поля даты и времени производства из ISO-строки.
+    
     function setProduction(value) {
         const s = String(value || '');
         const date = s.slice(0, 10);
@@ -145,14 +145,14 @@ const Positions = (() => {
         updateExpiryPreview();
     }
 
-    // Подсвечивает чип, соответствующий текущему времени (или гасит все).
+    
     function syncTimeChips(time) {
         document.querySelectorAll('#time-presets .time-chip').forEach(c => {
             c.classList.toggle('active', c.dataset.time === time);
         });
     }
 
-    // Лайв-превью: дата производства + дней = дата истечения.
+    
     function updateExpiryPreview() {
         const out = document.getElementById('expiry-preview');
         const valEl = document.getElementById('ep-value');
@@ -184,7 +184,7 @@ const Positions = (() => {
         return time === '23:59' ? date : `${date}, ${time}`;
     }
 
-    // Для производства всегда показываем время (даже 23:59).
+    
     function formatProductionDate(s) {
         const d = new Date(String(s || ''));
         if (isNaN(d.getTime())) return '—';
@@ -193,9 +193,9 @@ const Positions = (() => {
         return `${date} · ${pad(d.getHours())}:${pad(d.getMinutes())}`;
     }
 
-    // Восстанавливает значения формы для существующей позиции:
-    // если есть production_date + closed_shelf_days — берём их.
-    // Иначе — backfill из expiry_closed (production = сегодня, дней = до истечения).
+    
+    
+    
     function applyExpiryFields(position) {
         const sd = document.getElementById('closed-shelf-days');
         if (position?.production_date && position?.closed_shelf_days) {
@@ -216,8 +216,8 @@ const Positions = (() => {
         updateExpiryPreview();
     }
 
-    // Переключает категорию с обновлением UI чипов, скрытого input
-    // и правил видимости полей.
+    
+    
     function setCategory(cat) {
         const form = document.getElementById('position-form');
         if (!form || !cat) return;
@@ -230,7 +230,7 @@ const Positions = (() => {
         applyCategoryRules();
     }
 
-    // ---------------- Модалка создания / редактирования ----------------
+    
     const openModal = (position = null) => {
         editingId = position ? position.id : null;
         const modal = document.getElementById('position-modal');
@@ -243,13 +243,13 @@ const Positions = (() => {
         if (position) {
             form.name.value = position.name;
             form.tob.value = position.tob;
-            // shelf_open_days больше не в форме — он сохраняется как есть в handleSubmit.
+            
             form.is_open.checked = position.is_open;
             applyExpiryFields(position);
             setCategory(position.category);
         } else {
             form.tob.value = Utils.generateTob();
-            // Производство по умолчанию — сегодня в 12:00, срок 30 дней.
+            
             setProduction(`${Utils.today()}T12:00`);
             document.getElementById('closed-shelf-days').value = 30;
             updateExpiryPreview();
@@ -263,10 +263,10 @@ const Positions = (() => {
         document.getElementById(id).classList.remove('show');
     };
 
-    // Хранит черновик между шагами модалки.
+    
     let pendingDraft = null;
 
-    // ----- Память сканов: barcode → { name, tob, category } -----
+    
     const BARCODES_KEY = 'bar-app:barcodes';
     let pendingBarcode = null;
 
@@ -286,8 +286,8 @@ const Positions = (() => {
         Scanner.open((code) => {
             if (!code) return;
             const saved = loadBarcodes()[code] || null;
-            openModal();           // открываем модалку «новая позиция» (с дефолтами)
-            pendingBarcode = code; // ставим ПОСЛЕ openModal — он сбрасывает state
+            openModal();           
+            pendingBarcode = code; 
             if (saved) {
                 const form = document.getElementById('position-form');
                 form.name.value = saved.name || '';
@@ -311,7 +311,7 @@ const Positions = (() => {
             return;
         }
 
-        // Дубликаты TOB допускаются — это разные пачки одного товара.
+        
         const name = String(data.get('name')).trim();
         const category = String(data.get('category'));
         const isOpen = form.is_open.checked;
@@ -325,7 +325,7 @@ const Positions = (() => {
             }
         }
 
-        // Дата производства + срок годности (дней) → expiry_closed.
+        
         const prodDate = String(data.get('production_date') || '').slice(0, 10);
         const prodTime = String(data.get('production_time') || '12:00').slice(0, 5);
         const closedDays = Number(data.get('closed_shelf_days'));
@@ -344,8 +344,8 @@ const Positions = (() => {
         const expiry_closed = `${_exp.getFullYear()}-${pad(_exp.getMonth() + 1)}-${pad(_exp.getDate())}T${pad(_exp.getHours())}:${pad(_exp.getMinutes())}`;
 
         const current = editingId ? Storage.get(editingId) : null;
-        // shelf_open_days больше не вводится на шаге 1 — берём с шага 2
-        // или из существующей позиции (для редактирования).
+        
+        
         const draft = {
             id: editingId || Utils.uuid(),
             tob,
@@ -360,8 +360,8 @@ const Positions = (() => {
             created_at: current?.created_at || new Date().toISOString()
         };
 
-        // Если ДОБАВЛЯЕМ открытую — переходим на шаг 2, чтобы явно подтвердить
-        // срок после вскрытия. При редактировании просто сохраняем.
+        
+        
         if (isOpen && !editingId) {
             showStep2(draft);
             return;
@@ -373,8 +373,8 @@ const Positions = (() => {
     async function saveAndClose(position) {
         try {
             await Storage.save(position);
-            // Если позиция создавалась после скана — запомним штрихкод,
-            // чтобы при следующем сканировании поля подтянулись сами.
+            
+            
             if (pendingBarcode && !editingId) {
                 rememberBarcode(pendingBarcode, {
                     name: position.name,
@@ -393,7 +393,7 @@ const Positions = (() => {
         }
     }
 
-    // ----- Шаг 2: подтверждение срока после вскрытия -----
+    
     function showStep2(draft) {
         pendingDraft = draft;
         document.querySelector('.modal-step[data-step="1"]').classList.add('hidden');
@@ -402,7 +402,7 @@ const Positions = (() => {
         document.getElementById('step2-name').textContent = draft.name;
         document.getElementById('step2-tob').textContent = draft.tob;
 
-        // Приоритет источника: что ввёл в форме → что было у позиции с тем же TOB.
+        
         let value = draft.shelf_open_days;
         let fromTob = false;
         if (!value) {
@@ -451,7 +451,7 @@ const Positions = (() => {
         pendingDraft = null;
     }
 
-    // Лейбл основной кнопки: «Далее →» если новая открытая, иначе «Сохранить».
+    
     function updateSubmitLabel() {
         const btn = document.getElementById('step1-submit');
         const form = document.getElementById('position-form');
@@ -460,19 +460,19 @@ const Positions = (() => {
         btn.textContent = willStep2 ? 'Далее →' : 'Сохранить';
     }
 
-    // ---------------- Детали ----------------
+    
     const openDetails = (id) => {
         const p = Storage.get(id);
         if (!p) return;
         const exp = Utils.expiryLabel(p);
         const effExp = Utils.effectiveExpiry(p);
 
-        // Расчёт двух дат:
-        //   closedExp = срок упаковки (как написан на этикетке)
-        //   openExp   = opened_at + shelf_open_days (если позиция открыта)
-        // Из них берётся МИНИМУМ как фактический срок — товар испортится по тому,
-        // который наступит раньше. Сравнение через toDateTime, чтобы голые даты
-        // считались как 23:59.
+        
+        
+        
+        
+        
+        
         const closedExp = p.expiry_closed;
         const openExp = (p.is_open && p.opened_at && p.shelf_open_days)
             ? Utils.addDays(p.opened_at, p.shelf_open_days)
@@ -569,11 +569,11 @@ const Positions = (() => {
                 Utils.toast(`Уже открыто максимум (${max}) — закрой предыдущую`);
                 return;
             }
-            // Открытие — через отдельный диалог с датой/временем вскрытия.
+            
             openVskrytieModal(position);
             return;
         }
-        // Закрытие — сразу, без вопросов.
+        
         try {
             await Storage.closePos(position.id);
             closeModal('detail-modal');
@@ -583,7 +583,7 @@ const Positions = (() => {
         } catch (err) { Utils.toast(err.message); }
     };
 
-    // ----- Модалка «Открыть позицию» (когда вскрыли + опц. срок после) -----
+    
     let pendingOpenPosition = null;
 
     function openVskrytieModal(position) {
@@ -591,10 +591,10 @@ const Positions = (() => {
         document.getElementById('open-tob').textContent = position.tob;
         document.getElementById('open-name').textContent = position.name;
 
-        // Дефолт: «прямо сейчас».
+        
         setOpenedAt(new Date());
 
-        // Поле «срок после вскрытия» показываем, если у позиции его ещё нет.
+        
         const shelfWrap = document.getElementById('open-shelf-field');
         const shelfInput = document.getElementById('open-shelf-days');
         const hint = document.getElementById('open-hint');
@@ -610,8 +610,8 @@ const Positions = (() => {
 
         document.getElementById('open-modal').classList.add('show');
         setTimeout(() => {
-            // фокус на «Сейчас» через слабый акцент: фокусим срок если виден,
-            // иначе ничего — пользователь чаще всего просто жмёт «Открыть».
+            
+            
             if (!shelfWrap.classList.contains('hidden')) {
                 shelfInput.focus();
             }
@@ -668,7 +668,7 @@ const Positions = (() => {
         }
     }
 
-    // ---------------- init ----------------
+    
     const init = () => {
         Nav.onShow('positions', render);
 
@@ -709,16 +709,16 @@ const Positions = (() => {
             });
         });
 
-        // Чипы категории — клик переключает.
+        
         document.querySelectorAll('#category-chips .cat-chip').forEach(chip => {
             chip.addEventListener('click', () => setCategory(chip.dataset.cat));
         });
 
-        // Чекбокс «Сразу пометить как открытую» — меняет лейбл submit'а.
+        
         document.getElementById('is-open-check')
             .addEventListener('change', updateSubmitLabel);
 
-        // Пресет-чипы времени — клик подставляет время и подсвечивает чип.
+        
         document.querySelectorAll('#time-presets .time-chip').forEach(chip => {
             chip.addEventListener('click', () => {
                 document.getElementById('production-time').value = chip.dataset.time;
@@ -727,7 +727,7 @@ const Positions = (() => {
             });
         });
 
-        // Лайв-превью: пересчёт даты истечения при любом изменении полей.
+        
         ['production-date', 'production-time', 'closed-shelf-days'].forEach(id => {
             document.getElementById(id).addEventListener('input', () => {
                 if (id === 'production-time') {
@@ -737,7 +737,7 @@ const Positions = (() => {
             });
         });
 
-        // Кнопки шага 2.
+        
         document.getElementById('step2-back').addEventListener('click', backToStep1);
         document.getElementById('step2-confirm').addEventListener('click', confirmStep2);
         document.getElementById('shelf-step-input').addEventListener('keydown', (e) => {
@@ -747,7 +747,7 @@ const Positions = (() => {
             }
         });
 
-        // Модалка «Открыть позицию».
+        
         document.getElementById('open-confirm').addEventListener('click', confirmVskrytie);
         document.querySelectorAll('#open-time-presets .time-chip').forEach(chip => {
             chip.addEventListener('click', () => {
@@ -765,9 +765,9 @@ const Positions = (() => {
             }
         });
 
-        // TOB ввод — только цифры, максимум 6. Когда введено 6 цифр и это
-        // НОВАЯ позиция с пустым названием — пытаемся подтянуть данные
-        // из уже зарегистрированной позиции с таким TOB.
+        
+        
+        
         const tobInput = document.getElementById('tob-input');
         tobInput.addEventListener('input', (e) => {
             e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6);
@@ -775,8 +775,8 @@ const Positions = (() => {
             const existing = Storage.getByTob(e.target.value);
             if (!existing) return;
             const form = document.getElementById('position-form');
-            // подтягиваем только если человек ещё не начал заполнять — иначе
-            // не затрём то, что он сам ввёл.
+            
+            
             if (!form.name.value.trim()) {
                 form.name.value = existing.name;
                 if (existing.shelf_open_days) {

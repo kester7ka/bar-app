@@ -77,7 +77,6 @@
     font-size: 13px;
 }
 
-/* Селектор бара */
 .bar-select {
     display: flex;
     gap: 8px;
@@ -111,7 +110,6 @@
     border-color: var(--text);
 }
 
-/* Блок «сегодня работают» */
 .today-block {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -220,7 +218,6 @@
     color: var(--text-muted);
 }
 
-/* Таблица графика */
 .schedule-grid-wrap {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -260,9 +257,8 @@
 
 .schedule-grid {
     border-collapse: collapse;
-    width: 100%;
-    font-size: 12px;
-    table-layout: fixed;
+    font-size: 13px;
+    width: max-content;
 }
 
 .schedule-grid th,
@@ -271,8 +267,9 @@
     border-bottom: 1px solid var(--border);
     text-align: center;
     padding: 0;
-    height: 36px;
-    min-width: 28px;
+    height: 44px;
+    width: 42px;
+    min-width: 42px;
     box-sizing: border-box;
 }
 
@@ -322,7 +319,6 @@
     color: var(--bg);
 }
 
-/* типы ячеек по классификатору */
 .schedule-grid td.cell-hours {
     color: var(--text);
     font-weight: 600;
@@ -371,19 +367,51 @@
     color: var(--text-muted);
 }
 
-.schedule-grid th.col-total,
-.schedule-grid td.col-total {
-    position: sticky;
-    right: 0;
-    background: var(--surface-2);
+.schedule-grid th.col-summary,
+.schedule-grid td.col-summary {
+    width: 72px;
+    min-width: 72px;
+    font-variant-numeric: tabular-nums;
     font-weight: 600;
-    color: var(--text);
-    min-width: 40px;
-    font-size: 12px;
+    background: var(--surface-2);
+    border-left: 2px solid var(--border);
 }
 
-.schedule-grid td.col-total {
+.schedule-grid th.col-summary {
+    color: var(--text-muted);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    line-height: 1.15;
+    padding: 4px 2px;
+    white-space: nowrap;
+}
+
+.schedule-grid th.col-summary span {
+    display: block;
+    font-size: 9px;
+    font-weight: 500;
+    opacity: 0.7;
+    margin-top: 3px;
+    letter-spacing: 0.02em;
+    text-transform: none;
+}
+
+.schedule-grid td.col-summary {
+    color: var(--text);
+    font-size: 14px;
     background: var(--surface);
+}
+
+.schedule-grid th.col-summary.salary,
+.schedule-grid td.col-summary.salary {
+    background: var(--text);
+    color: var(--bg);
+}
+
+.schedule-grid th.col-summary.salary {
+    color: var(--bg);
+    opacity: 0.95;
 }
 
 .legend {

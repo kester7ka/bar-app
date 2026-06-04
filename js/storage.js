@@ -1,8 +1,3 @@
-// Слой хранилища поверх REST API.
-// Поддерживает in-memory кэш, чтобы синхронные геттеры (.list(), .get(...))
-// работали из render-функций. После каждой мутации делает запрос на сервер
-// и обновляет кэш.
-
 const Storage = (() => {
     const POS_CACHE_KEY = 'bar-app:positions-cache';
     let cache = [];
@@ -21,7 +16,7 @@ const Storage = (() => {
             writeLocal();
             return cache;
         } catch (e) {
-            // Сервер недоступен — пробуем локальный кэш (read-only).
+            
             const local = readLocal();
             if (local) {
                 cache = local;
@@ -54,7 +49,7 @@ const Storage = (() => {
         ) || null;
     }
 
-    // Сколько уже открытых с тем же именем+категорией в баре (без текущей).
+    
     function countOpenSiblings(name, category, excludeId = null) {
         const norm = name.trim().toLowerCase();
         let n = 0;
@@ -68,11 +63,11 @@ const Storage = (() => {
         return n;
     }
 
-    // Сколько открытых разрешено для категории.
-    //   syrups        → 2 (вторая с предупреждением)
-    //   cookies       → 0 (печенье не открывают)
-    //   ingredients,
-    //   other         → без ограничений
+    
+    
+    
+    
+    
     function maxOpenFor(category) {
         if (category === 'syrups')  return 2;
         if (category === 'cookies') return 0;
@@ -106,7 +101,7 @@ const Storage = (() => {
     }
 
     async function openPos(id, opts = {}) {
-        // opts: { opened_at?: 'YYYY-MM-DDTHH:MM', shelf_open_days?: number }
+        
         await Api.post(`/api/positions/${id}/open`, opts || {});
         await refresh();
     }
@@ -129,7 +124,7 @@ const Storage = (() => {
         return expired.length;
     }
 
-    // Настройки — остаются локально (тема, прочее).
+    
     function settings() {
         try { return JSON.parse(localStorage.getItem('bar-app:settings') || '{}'); }
         catch { return {}; }

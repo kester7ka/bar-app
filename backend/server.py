@@ -1,13 +1,3 @@
-"""REST-сервер Bar Manager.
-
-Запуск:
-    pip install -r requirements.txt
-    python server.py           # БД и список баров создаются автоматически
-
-Все эндпоинты, кроме /api/auth/* и /api/health, требуют Authorization: Bearer <token>.
-Каждый запрос работает только с позициями бара, к которому привязан пользователь.
-Генерация одноразовых ключей регистрации — отдельный инструмент (вне репозитория).
-"""
 from __future__ import annotations
 
 import logging
@@ -36,12 +26,8 @@ app = Flask(__name__, static_folder="..", static_url_path="")
 logger = logging.getLogger("bar-app")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
-# ----- Конфиг из окружения -----
-# CORS: '*' для локалки. В продакшене перечислить домены через запятую.
 CORS_ORIGINS = os.environ.get("BAR_APP_CORS_ORIGINS", "*").strip()
 
-# flask-cors сам обрабатывает preflight (OPTIONS) и проставляет заголовки.
-# Это надёжнее ручной логики — поддерживает credentials, списки origin'ов и т.д.
 if CORS_ORIGINS == "*":
     CORS(app, resources={r"/api/*": {"origins": "*"}})
 else:
@@ -53,28 +39,20 @@ KEY_RE = re.compile(r"^\d{8}$")
 USERNAME_RE = re.compile(r"^[A-Za-zА-Яа-яЁё0-9_.-]{3,32}$")
 ALLOWED_CATEGORIES = {"ingredients", "syrups", "cookies", "other"}
 
-# ----- Лимиты длин (защита от DoS через гигантские строки) -----
 MAX_USERNAME = 32
 MAX_DISPLAY_NAME = 64
 MAX_PASSWORD = 128
 MAX_NAME = 120
 MAX_NOTE = 200
 
-# ----- Rate-limit для авторизации -----
-# Простой in-memory store. На один Flask-процесс хватает; для нескольких
-# воркеров нужен Redis, но это уже задача деплоя.
 _attempts: dict[str, deque] = {}
-AUTH_RATE_LIMIT = 10        # попыток в окне
-AUTH_RATE_WINDOW = 300      # 5 минут
+AUTH_RATE_LIMIT = 10
+AUTH_RATE_WINDOW = 300
 
-# «Болванка» для timing-safe сравнения, чтобы по времени ответа нельзя
-# было понять, существует ли никнейм. Считается лениво при первом обращении.
 _dummy_hash_cache: Optional[str] = None
-
 
 def _client_ip() -> str:
     return (request.headers.get("X-Forwarded-For", "") or request.remote_addr or "?").split(",")[0].strip()
-
 
 def _rate_ok(bucket: str) -> bool:
     now = time()
@@ -83,20 +61,14 @@ def _rate_ok(bucket: str) -> bool:
         dq.popleft()
     return len(dq) < AUTH_RATE_LIMIT
 
-
 def _rate_hit(bucket: str) -> None:
     _attempts.setdefault(bucket, deque()).append(time())
-
 
 def _dummy_hash() -> str:
     global _dummy_hash_cache
     if _dummy_hash_cache is None:
         _dummy_hash_cache = hash_password("__timing_safe_placeholder__")
     return _dummy_hash_cache
-
-
-# ----------------- Security headers -----------------
-# CORS обрабатывает flask-cors (см. выше). Здесь — только security-заголовки.
 
 @app.after_request
 def add_headers(resp):
@@ -105,9 +77,6 @@ def add_headers(resp):
     resp.headers.setdefault("Referrer-Policy", "same-origin")
     resp.headers.setdefault("Permissions-Policy", "geolocation=(), microphone=()")
     return resp
-
-
-# ----------------- Auth middleware -----------------
 
 def require_auth(fn):
     @wraps(fn)
@@ -127,14 +96,13 @@ def require_auth(fn):
             g.user_id = session["user_id"]
             g.bar_id = session["bar_id"]
             g.is_admin = bool(session["is_admin"])
-            # Админ может смотреть любой бар: переопределение через X-Bar-Id.
+
             if g.is_admin:
                 override = request.headers.get("X-Bar-Id", "")
                 if override.isdigit():
                     g.bar_id = int(override)
         return fn(*args, **kwargs)
     return wrapper
-
 
 def require_admin(fn):
     @wraps(fn)
@@ -144,21 +112,14 @@ def require_admin(fn):
         return fn(*args, **kwargs)
     return wrapper
 
-
 def _extract_token() -> Optional[str]:
     h = request.headers.get("Authorization", "")
     if h.startswith("Bearer "):
         return h[7:].strip()
     return None
 
-
-# ----------------- Auth endpoints -----------------
-
 @app.post("/api/auth/register")
 def register():
-    """Регистрация по одноразовому ключу.
-    body: { key, username, password, display_name?, accepted_policy: true }
-    """
     bucket = f"auth:{_client_ip()}"
     if not _rate_ok(bucket):
         return _err("Слишком много попыток. Подожди 5 минут.", HTTPStatus.TOO_MANY_REQUESTS)
@@ -168,7 +129,7 @@ def register():
     username = str(data.get("username", "")).strip()
     password = str(data.get("password", ""))
     display_name = (data.get("display_name") or "").strip() or None
-    # СТРОГИЙ check: только Python True (bool из JSON). Строка "false" сюда не попадёт.
+
     accepted_policy = data.get("accepted_policy") is True
 
     if not KEY_RE.match(key):
@@ -187,12 +148,11 @@ def register():
 
     try:
         with connect() as conn:
-            # Никнейм свободен?
+
             if conn.execute("SELECT 1 FROM users WHERE username = ? COLLATE NOCASE", (username,)).fetchone():
                 _rate_hit(bucket)
                 return _err("Никнейм уже занят", HTTPStatus.CONFLICT)
 
-            # Ключ валиден и не использован?
             key_row = conn.execute(
                 "SELECT id, bar_id, used_at FROM one_time_keys WHERE key = ?",
                 (key,),
@@ -204,7 +164,6 @@ def register():
                 _rate_hit(bucket)
                 return _err("Этот ключ уже использован", HTTPStatus.GONE)
 
-            # Создаём пользователя.
             cur = conn.execute(
                 """INSERT INTO users (bar_id, username, password_hash, display_name, accepted_policy_at)
                    VALUES (?, ?, ?, ?, datetime('now'))""",
@@ -227,10 +186,8 @@ def register():
     logger.info("registered user_id=%s bar_id=%s ip=%s", user_id, key_row["bar_id"], _client_ip())
     return jsonify({"token": token, "user": row_to_user(user), "bar": row_to_bar(bar)}), HTTPStatus.CREATED
 
-
 @app.post("/api/auth/login")
 def login():
-    """body: { username, password }"""
     bucket = f"auth:{_client_ip()}"
     if not _rate_ok(bucket):
         return _err("Слишком много попыток. Подожди 5 минут.", HTTPStatus.TOO_MANY_REQUESTS)
@@ -239,7 +196,6 @@ def login():
     username = str(data.get("username", "")).strip()
     password = str(data.get("password", ""))
 
-    # Лимиты длин: без них можно прислать гигантскую строку и заDOSить хеш.
     if not username or not password:
         _rate_hit(bucket)
         return _err("Никнейм и пароль обязательны")
@@ -252,8 +208,7 @@ def login():
             user = conn.execute(
                 "SELECT * FROM users WHERE username = ? COLLATE NOCASE", (username,)
             ).fetchone()
-            # Timing-safe: всегда прогоняем pbkdf2, даже если пользователя нет.
-            # Иначе по времени ответа можно понять, существует ли ник.
+
             if user:
                 ok = verify_password(password, user["password_hash"])
             else:
@@ -273,7 +228,6 @@ def login():
 
     return jsonify({"token": token, "user": row_to_user(user), "bar": row_to_bar(bar)})
 
-
 @app.post("/api/auth/logout")
 @require_auth
 def logout():
@@ -281,7 +235,6 @@ def logout():
     with connect() as conn:
         conn.execute("DELETE FROM sessions WHERE token = ?", (token,))
     return "", HTTPStatus.NO_CONTENT
-
 
 @app.get("/api/auth/me")
 @require_auth
@@ -291,16 +244,12 @@ def me():
         bar = conn.execute("SELECT * FROM bars WHERE id = ?", (g.bar_id,)).fetchone()
     return jsonify({"user": row_to_user(user), "bar": row_to_bar(bar)})
 
-
-# ----------------- Admin: генерация ключей -----------------
-
 def _gen_unique_key(conn) -> str:
     for _ in range(50):
         k = "".join(str(secrets.randbelow(10)) for _ in range(8))
         if not conn.execute("SELECT 1 FROM one_time_keys WHERE key = ?", (k,)).fetchone():
             return k
     raise RuntimeError("cannot generate unique key")
-
 
 @app.post("/api/admin/keys")
 @require_auth
@@ -331,7 +280,6 @@ def admin_create_keys():
     logger.info("admin %s generated %d keys for bar %s", g.user_id, count, bar["code"])
     return jsonify({"keys": keys, "bar": {"id": bar["id"], "code": bar["code"], "name": bar["name"]}})
 
-
 @app.delete("/api/admin/keys/<key>")
 @require_auth
 @require_admin
@@ -342,7 +290,6 @@ def admin_delete_key(key):
             return _err("Ключ не найден", HTTPStatus.NOT_FOUND)
     logger.info("admin %s deleted key %s", g.user_id, key)
     return ("", HTTPStatus.NO_CONTENT)
-
 
 @app.get("/api/admin/keys")
 @require_auth
@@ -370,9 +317,6 @@ def admin_list_keys():
         for r in rows
     ])
 
-
-# ----------------- Positions (scoped by bar) -----------------
-
 @app.get("/api/positions")
 @require_auth
 def list_positions():
@@ -382,7 +326,6 @@ def list_positions():
             (g.bar_id,),
         ).fetchall()
     return jsonify([row_to_position(r) for r in rows])
-
 
 @app.post("/api/positions")
 @require_auth
@@ -417,7 +360,6 @@ def create_position():
             return _err("Не удалось сохранить позицию", HTTPStatus.CONFLICT)
         row = conn.execute("SELECT * FROM positions WHERE id = ?", (pid,)).fetchone()
     return jsonify(row_to_position(row)), HTTPStatus.CREATED
-
 
 @app.put("/api/positions/<pid>")
 @require_auth
@@ -457,15 +399,9 @@ def update_position(pid):
         ).fetchone()
     return jsonify(row_to_position(row))
 
-
 @app.post("/api/positions/<pid>/open")
 @require_auth
 def open_position(pid):
-    """Открыть позицию. Тело необязательное:
-        { opened_at: ISO datetime, shelf_open_days?: int }
-    Если opened_at не задан — берём текущую дату.
-    Если shelf_open_days задан — обновляем у позиции (полезно при первом вскрытии).
-    """
     data = request.get_json(silent=True) or {}
     opened_at = (data.get("opened_at") or "").strip() or None
     shelf_open_days_raw = data.get("shelf_open_days")
@@ -510,7 +446,6 @@ def open_position(pid):
         ).fetchone()
     return jsonify(row_to_position(row))
 
-
 @app.post("/api/positions/<pid>/close")
 @require_auth
 def close_position(pid):
@@ -519,9 +454,7 @@ def close_position(pid):
             "UPDATE positions SET is_open = 0, opened_at = NULL WHERE id = ? AND bar_id = ?",
             (pid, g.bar_id),
         )
-        # Финальный SELECT ТОЖЕ фильтруется по bar_id — иначе через
-        # угаданный/перехваченный чужой pid можно было бы вытащить позицию
-        # другого бара (UPDATE её не тронет, но SELECT вернул бы данные).
+
         row = conn.execute(
             "SELECT * FROM positions WHERE id = ? AND bar_id = ?",
             (pid, g.bar_id),
@@ -530,7 +463,6 @@ def close_position(pid):
         return _err("Позиция не найдена", HTTPStatus.NOT_FOUND)
     return jsonify(row_to_position(row))
 
-
 @app.delete("/api/positions/<pid>")
 @require_auth
 def delete_position(pid):
@@ -538,15 +470,8 @@ def delete_position(pid):
         conn.execute("DELETE FROM positions WHERE id = ? AND bar_id = ?", (pid, g.bar_id))
     return "", HTTPStatus.NO_CONTENT
 
-
-# ----------------- Bars (read only) -----------------
-
 @app.get("/api/schedule/xlsx")
 def schedule_xlsx():
-    """Прокси для xlsx-таблицы графика на Яндекс.Диске.
-    Браузер из GitHub Pages не может скачать downloader.disk.yandex.ru напрямую
-    из-за CORS — ходим за файлом сами и отдаём с нашими CORS-заголовками.
-    """
     import json as _json
     import urllib.parse
     import urllib.request
@@ -573,19 +498,14 @@ def schedule_xlsx():
         logger.exception("schedule xlsx proxy failed")
         return _err("Не удалось получить таблицу", HTTPStatus.BAD_GATEWAY)
 
-
 @app.get("/api/bars")
 def list_bars():
     with connect() as conn:
         rows = conn.execute("SELECT * FROM bars ORDER BY code").fetchall()
     return jsonify([row_to_bar(r) for r in rows])
 
-
-# ----------------- helpers -----------------
-
 def _err(msg: str, code: int = HTTPStatus.BAD_REQUEST):
     return jsonify({"error": msg}), code
-
 
 def _create_session(conn, user_id: int) -> str:
     token = new_token()
@@ -595,14 +515,13 @@ def _create_session(conn, user_id: int) -> str:
     )
     return token
 
-
 def _validate(payload: dict):
     name = (payload.get("name") or "").strip()
     tob = (payload.get("tob") or "").strip()
     category = payload.get("category")
     expiry_closed = (payload.get("expiry_closed") or "").strip() or None
     shelf_open_days = payload.get("shelf_open_days")
-    # Строгий boolean — иначе строка "false" приведётся к True.
+
     is_open = payload.get("is_open") is True
 
     production_date = (payload.get("production_date") or "").strip() or None
@@ -625,7 +544,6 @@ def _validate(payload: dict):
     if category not in ALLOWED_CATEGORIES:
         return None, "Неизвестная категория"
 
-    # Если есть дата производства и срок в днях — считаем expiry_closed сами.
     if production_date and closed_shelf_days:
         try:
             base = datetime.fromisoformat(production_date)
@@ -655,20 +573,12 @@ def _validate(payload: dict):
         "is_open": 1 if is_open else 0,
     }, None
 
-
 def _max_open_for(category: str) -> float:
-    """Сколько открытых позиций одного товара разрешено в баре.
-        syrups       → 2 (вторую можно открыть с предупреждением на фронте)
-        cookies      → 0 (печенье вообще не «открывают»)
-        ingredients,
-        other        → без ограничений
-    """
     if category == "syrups":
         return 2
     if category == "cookies":
         return 0
     return float("inf")
-
 
 def _open_sibling_count(conn, bar_id: int, name: str, category: str,
                          exclude_id: Optional[str] = None) -> int:
@@ -680,24 +590,13 @@ def _open_sibling_count(conn, bar_id: int, name: str, category: str,
         args.append(exclude_id)
     return conn.execute(sql, args).fetchone()["c"]
 
-
 def _can_open_more(conn, bar_id: int, name: str, category: str,
                     exclude_id: Optional[str] = None) -> bool:
-    """True, если ещё одну открытую позицию можно добавить."""
     return _open_sibling_count(conn, bar_id, name, category, exclude_id) \
         < _max_open_for(category)
 
-
-# ----------------- root -----------------
-
 @app.get("/api/health")
 def health():
-    """Лёгкий пинг для индикатора статуса в Инструментах.
-    Не требует авторизации. Поля:
-        server — всегда True если ответ дошёл
-        db     — True, если SELECT 1 отработал
-        api    — True, если сервер вообще откликается (по сути == server)
-    """
     db_ok = False
     try:
         with connect() as conn:
@@ -712,23 +611,17 @@ def health():
         "ts": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
     })
 
-
 @app.route("/")
 def index():
-    # На облачном деплое фронт может жить отдельно (GitHub Pages), тогда
-    # index.html рядом нет — отдаём короткий JSON, чтобы '/' не падал.
+
     try:
         return app.send_static_file("index.html")
     except Exception:
         return jsonify({"app": "Bar Manager API", "health": "/api/health"})
 
-
 def _bootstrap() -> None:
-    """Готовит БД к работе. Вызывается и при `python server.py`,
-    и при импорте gunicorn'ом (`gunicorn server:app`)."""
     init_db()
-    # Авто-сид баров, если таблица пуста — удобно для облака,
-    # где не получится вручную дёрнуть seed_bars.py.
+
     try:
         with connect() as conn:
             empty = conn.execute("SELECT COUNT(*) AS c FROM bars").fetchone()["c"] == 0
@@ -745,7 +638,6 @@ def _bootstrap() -> None:
     except Exception:
         logger.exception("bootstrap seed failed")
 
-    # Создаём админа из переменных окружения, если задан и ещё не существует.
     admin_user = (os.environ.get("BAR_APP_ADMIN_USER") or "").strip()
     admin_pass = os.environ.get("BAR_APP_ADMIN_PASSWORD") or ""
     if admin_user and admin_pass:
@@ -756,7 +648,7 @@ def _bootstrap() -> None:
                     (admin_user,),
                 ).fetchone()
                 if exists:
-                    # Уже есть — на всякий случай поднимаем флаг админа.
+
                     if not exists["is_admin"]:
                         conn.execute("UPDATE users SET is_admin = 1 WHERE id = ?", (exists["id"],))
                         logger.info("promoted existing user to admin: %s", admin_user)
@@ -772,10 +664,7 @@ def _bootstrap() -> None:
         except Exception:
             logger.exception("admin bootstrap failed")
 
-
-# Выполняется при импорте модуля (в т.ч. gunicorn'ом).
 _bootstrap()
-
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))

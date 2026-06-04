@@ -1,12 +1,6 @@
-// Точка входа.
-// 1) Тема и тривиальный UI инициализируются сразу.
-// 2) Пробуем восстановить сессию.
-// 3) Если есть — грузим позиции с сервера и рендерим главную.
-//    Если нет — показываем оверлей входа/регистрации.
-
 const Boot = (() => {
     async function start() {
-        // Инициализация модулей, которые не требуют auth.
+        
         Profile.init();
         Nav.init();
         Auth.init();
@@ -31,7 +25,7 @@ const Boot = (() => {
     }
 
     async function afterAuth() {
-        // Отметка для CSS: показывает админ-плитку, скрывает QR у админа.
+        
         document.body.classList.toggle('is-admin', !!Auth.isAdmin?.());
         try {
             await Storage.refresh();
@@ -46,8 +40,6 @@ const Boot = (() => {
     return { start, afterAuth };
 })();
 
-// --- Анти-зум для iOS (Safari игнорит user-scalable=no в части жестов).
-//     Блокируем pinch-жесты и двойной тап на зум.
 ['gesturestart', 'gesturechange', 'gestureend'].forEach(ev => {
     document.addEventListener(ev, (e) => e.preventDefault(), { passive: false });
 });
@@ -55,9 +47,9 @@ let __lastTouchEnd = 0;
 const __FORM_TAGS = 'input, textarea, select, button, a, label, [contenteditable]';
 document.addEventListener('touchend', (e) => {
     const now = Date.now();
-    // Защита от двойного-тап-зума. НО НЕ для полей ввода и кликабельного —
-    // иначе на Android тап по input приводит к preventDefault и клавиатура
-    // мгновенно закрывается, не успев толком открыться.
+    
+    
+    
     if (now - __lastTouchEnd <= 350) {
         const t = e.target;
         if (!(t && t.closest && t.closest(__FORM_TAGS))) {
@@ -67,7 +59,6 @@ document.addEventListener('touchend', (e) => {
     __lastTouchEnd = now;
 }, { passive: false });
 
-// Pinch — только реально многоточечный жест. Один палец на input не трогаем.
 document.addEventListener('touchmove', (e) => {
     if (e.touches.length > 1) e.preventDefault();
 }, { passive: false });

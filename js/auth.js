@@ -1,6 +1,3 @@
-// Состояние авторизации + UI оверлея регистрации/входа.
-// Пока пользователь не аутентифицирован — основное приложение скрыто.
-
 const Auth = (() => {
     const CACHE_KEY = 'bar-app:user-cache';
     let _user = null;
@@ -13,7 +10,7 @@ const Auth = (() => {
     const isOffline = () => _offline;
     const isAdmin = () => !!(_user && _user.is_admin);
 
-    // Перечитать /api/auth/me (для админа учитывает X-Bar-Id → вернёт активный бар).
+    
     async function refreshMe() {
         const me = await Api.get('/api/auth/me');
         _user = me.user;
@@ -39,7 +36,7 @@ const Auth = (() => {
         try { localStorage.removeItem(CACHE_KEY); } catch {}
     }
 
-    // Пробуем восстановить сессию: сначала с сервера, при ошибке — из кэша.
+    
     async function bootstrap() {
         if (!Api.getToken()) return false;
         try {
@@ -47,13 +44,13 @@ const Auth = (() => {
             _user = me.user;
             _bar = me.bar;
             _offline = false;
-            // Не-админу оставшийся override бара ни к чему — чистим.
+            
             if (!_user.is_admin) Api.setBarOverride(null);
             writeCache();
             return true;
         } catch (e) {
-            // Если у сервера 401 — токен реально протух, валим в логин.
-            // Если другая ошибка (нет связи, 5xx) — пробуем кэш и работаем офлайн.
+            
+            
             if (e && e.status === 401) {
                 Api.setToken(null);
                 clearCache();
@@ -93,14 +90,14 @@ const Auth = (() => {
     async function logout() {
         try { await Api.post('/api/auth/logout'); } catch {}
         Api.setToken(null);
-        Api.setBarOverride(null);   // сбрасываем админское переключение бара
+        Api.setBarOverride(null);   
         clearCache();
         _user = null;
         _bar = null;
         _offline = false;
     }
 
-    // ----- UI -----
+    
     function show()  { document.getElementById('auth-overlay').classList.add('show'); document.body.classList.add('locked'); }
     function hide()  { document.getElementById('auth-overlay').classList.remove('show'); document.body.classList.remove('locked'); }
 
@@ -120,20 +117,20 @@ const Auth = (() => {
     }
 
     function bindForms() {
-        // Переключение табов
+        
         document.querySelectorAll('.auth-tab').forEach(t => {
             t.addEventListener('click', () => switchTab(t.dataset.tab));
         });
 
-        // Маска для 8-значного ключа
+        
         const keyInput = document.getElementById('reg-key');
         keyInput.addEventListener('input', () => {
             keyInput.value = keyInput.value.replace(/\D/g, '').slice(0, 8);
         });
 
-        // Открытие политики — клик по ссылке внутри label.
-        // stopPropagation, чтобы клик не пробрасывался в label и не дёргал
-        // привязанный чекбокс лишний раз.
+        
+        
+        
         document.querySelectorAll('[data-policy]').forEach(el => {
             el.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -142,7 +139,7 @@ const Auth = (() => {
             });
         });
 
-        // «Глаз» — переключение видимости пароля.
+        
         document.querySelectorAll('[data-pwd-toggle]').forEach(btn => {
             btn.addEventListener('click', () => {
                 const input = btn.parentElement.querySelector('input');
@@ -154,7 +151,7 @@ const Auth = (() => {
             });
         });
 
-        // Регистрация
+        
         document.getElementById('form-register').addEventListener('submit', async (e) => {
             e.preventDefault();
             clearError();
@@ -174,7 +171,7 @@ const Auth = (() => {
             }
         });
 
-        // Логин
+        
         document.getElementById('form-login').addEventListener('submit', async (e) => {
             e.preventDefault();
             clearError();

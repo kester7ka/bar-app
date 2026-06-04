@@ -166,7 +166,6 @@
     line-height: 1.3;
 }
 
-/* Перенос строки внутри meta — даёт бейджу предупреждения свою линию */
 .pos-meta-line {
     flex-basis: 100%;
     height: 0;
@@ -198,7 +197,6 @@
     font-weight: 500;
 }
 
-/* Правый блок: большой счётчик дней + дата под ним */
 .position-aside {
     display: flex;
     flex-direction: column;

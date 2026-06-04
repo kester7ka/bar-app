@@ -1,7 +1,3 @@
-// Админ-панель: отдельный оверлей в Инструментах (виден только админу
-// через CSS-класс body.is-admin). Все эндпоинты защищены @require_admin
-// на сервере, так что обычный юзер ничего не сможет даже подменив UI.
-
 const Admin = (() => {
     let bars = [];
     let allKeys = [];
@@ -37,7 +33,7 @@ const Admin = (() => {
         const activeId = Api.getBarOverride() || (Auth.bar()?.id ?? '');
         fillSelect(document.getElementById('admin-active-bar'), activeId);
         fillSelect(document.getElementById('admin-keygen-bar'), activeId);
-        loadAllKeys();   // подтянем актуальный список ключей
+        loadAllKeys();   
     }
 
     function close() {
@@ -47,7 +43,7 @@ const Admin = (() => {
     async function switchBar(barId) {
         Api.setBarOverride(barId);
         try {
-            await Auth.refreshMe();      // Auth.bar() станет активным баром
+            await Auth.refreshMe();      
             await Storage.refresh();
             if (typeof Home !== 'undefined') Home.render();
             if (typeof Positions !== 'undefined') Positions.render();
@@ -69,13 +65,13 @@ const Admin = (() => {
             renderKeys(r.keys, r.bar);
             document.getElementById('admin-keygen-note').value = '';
             Utils.toast(`Создано ключей: ${r.keys.length}`);
-            loadAllKeys();   // обновим список снизу
+            loadAllKeys();   
         } catch (e) {
             Utils.toast(e.message || 'Не удалось сгенерировать');
         }
     }
 
-    // ----- Список всех ключей с фильтром и удалением -----
+    
     async function loadAllKeys() {
         const box = document.getElementById('admin-all-keys');
         if (!box) return;
