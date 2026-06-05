@@ -19,18 +19,23 @@ from flask_cors import CORS
 
 from auth_lib import (
     hash_password, verify_password,
-    new_token, session_expiry, is_session_valid,
+    new_token, hash_token, session_expiry, is_session_valid,
 )
 from db import connect, init_db, row_to_bar, row_to_position, row_to_user
 
 app = Flask(__name__, static_folder="..", static_url_path="")
 
+MAX_BODY_BYTES = 2 * 1024 * 1024
+app.config["MAX_CONTENT_LENGTH"] = MAX_BODY_BYTES
+
 logger = logging.getLogger("bar-app")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
-CORS_ORIGINS = os.environ.get("BAR_APP_CORS_ORIGINS", "*").strip()
+DEFAULT_ORIGIN = "https://kester7ka.github.io"
+CORS_ORIGINS = os.environ.get("BAR_APP_CORS_ORIGINS", DEFAULT_ORIGIN).strip()
 
 if CORS_ORIGINS == "*":
+    logger.warning("CORS is open to all origins (*). Set BAR_APP_CORS_ORIGINS to your site origin.")
     CORS(app, resources={r"/api/*": {"origins": "*"}})
 else:
     _origins = [o.strip().rstrip("/") for o in CORS_ORIGINS.split(",") if o.strip()]
@@ -46,6 +51,7 @@ MAX_DISPLAY_NAME = 64
 MAX_PASSWORD = 128
 MAX_NAME = 120
 MAX_NOTE = 200
+MAX_POSITIONS_PER_BAR = 5000
 
 _attempts: dict[str, deque] = {}
 AUTH_RATE_LIMIT = 10
@@ -54,7 +60,17 @@ AUTH_RATE_WINDOW = 300
 _dummy_hash_cache: Optional[str] = None
 
 def _client_ip() -> str:
-    return (request.headers.get("X-Forwarded-For", "") or request.remote_addr or "?").split(",")[0].strip()
+    xff = request.headers.get("X-Forwarded-For", "")
+    if xff:
+        parts = [p.strip() for p in xff.split(",") if p.strip()]
+        if parts:
+            return parts[-1]
+    return (request.remote_addr or "?").strip()
+
+_LOG_SAFE_RE = re.compile(r"[\r\n\t\x00-\x1f\x7f]")
+
+def _safe_log(value: str, limit: int = 64) -> str:
+    return _LOG_SAFE_RE.sub("?", str(value))[:limit]
 
 def _rate_ok(bucket: str) -> bool:
     now = time()
@@ -91,7 +107,7 @@ def require_auth(fn):
                 "SELECT s.token, s.user_id, s.expires_at, u.bar_id, u.is_admin "
                 "FROM sessions s JOIN users u ON u.id = s.user_id "
                 "WHERE s.token = ?",
-                (token,),
+                (hash_token(token),),
             ).fetchone()
             if not session or not is_session_valid(session["expires_at"]):
                 return jsonify({"error": "session expired"}), HTTPStatus.UNAUTHORIZED
@@ -140,9 +156,9 @@ def register():
     if not USERNAME_RE.match(username):
         _rate_hit(bucket)
         return _err("Никнейм: 3–32 символа, буквы/цифры/._-")
-    if len(password) < 6 or len(password) > MAX_PASSWORD:
+    if len(password) < 8 or len(password) > MAX_PASSWORD:
         _rate_hit(bucket)
-        return _err(f"Пароль: от 6 до {MAX_PASSWORD} символов")
+        return _err(f"Пароль: от 8 до {MAX_PASSWORD} символов")
     if display_name and len(display_name) > MAX_DISPLAY_NAME:
         return _err(f"Имя не длиннее {MAX_DISPLAY_NAME} символов")
     if not accepted_policy:
@@ -219,7 +235,7 @@ def login():
 
             if not ok:
                 _rate_hit(bucket)
-                logger.info("login failed username=%s ip=%s", username, _client_ip())
+                logger.info("login failed username=%s ip=%s", _safe_log(username), _client_ip())
                 return _err("Неверный никнейм или пароль", HTTPStatus.UNAUTHORIZED)
 
             token = _create_session(conn, user["id"])
@@ -235,7 +251,7 @@ def login():
 def logout():
     token = _extract_token()
     with connect() as conn:
-        conn.execute("DELETE FROM sessions WHERE token = ?", (token,))
+        conn.execute("DELETE FROM sessions WHERE token = ?", (hash_token(token),))
     return "", HTTPStatus.NO_CONTENT
 
 @app.get("/api/auth/me")
@@ -349,6 +365,7 @@ def _save_kb_overrides(data: dict) -> None:
 
 
 @app.get("/api/kb")
+@require_auth
 def kb_get():
     return jsonify(_load_kb_overrides())
 
@@ -366,21 +383,23 @@ def kb_upload():
     existing = _load_kb_overrides()
 
     def merge(target: list, incoming: list) -> int:
-        idx = {it.get("tov"): i for i, it in enumerate(target) if it.get("tov")}
+        idx = {it.get("tov"): i for i, it in enumerate(target) if isinstance(it, dict) and it.get("tov")}
         added = 0
         updated = 0
         for it in incoming:
-            tov = (it.get("tov") or "").strip()
+            if not isinstance(it, dict):
+                continue
+            tov = str(it.get("tov") or "").strip()[:32]
             if not tov:
                 continue
             record = {
                 "tov": tov,
-                "name": (it.get("name") or "").strip() or None,
-                "group": (it.get("group") or "Прочее").strip(),
+                "name": (str(it.get("name") or "").strip()[:200]) or None,
+                "group": (str(it.get("group") or "Прочее").strip()[:100]) or "Прочее",
             }
             life = it.get("life")
             if life is not None:
-                record["life"] = str(life).strip() or None
+                record["life"] = str(life).strip()[:200] or None
             if tov in idx:
                 target[idx[tov]] = record
                 updated += 1
@@ -436,6 +455,11 @@ def create_position():
     opened_at = date.today().isoformat() if payload["is_open"] else None
 
     with connect() as conn:
+        total = conn.execute(
+            "SELECT COUNT(*) AS c FROM positions WHERE bar_id = ?", (g.bar_id,)
+        ).fetchone()["c"]
+        if total >= MAX_POSITIONS_PER_BAR:
+            return _err("Достигнут лимит позиций для бара", HTTPStatus.CONFLICT)
         if payload["is_open"]:
             limit = _max_open_for(payload["category"])
             if limit == 0:
@@ -705,6 +729,9 @@ def hzn_info():
         return jsonify({"ok": False, "error": "Не удалось получить информацию"})
 
 
+HZN_MAX_CODES_PER_CHECK = 25
+
+
 def _check_honest_marks(codes):
     if not codes:
         return []
@@ -715,9 +742,9 @@ def _check_honest_marks(codes):
             data = _hzn_request(code, timeout=10)
             if _hz_is_sold(data):
                 sold.append(code)
-                logger.info("hzn SOLD: %s", code[:40])
+                logger.info("hzn SOLD: %s", _safe_log(code, 40))
         except Exception as e:
-            logger.warning("hzn check failed (%s): %s", type(e).__name__, code[:40])
+            logger.warning("hzn check failed (%s): %s", type(e).__name__, _safe_log(code, 40))
         _time.sleep(0.25)
     return sold
 
@@ -728,23 +755,26 @@ def honest_mark_check():
     with connect() as conn:
         rows = conn.execute(
             "SELECT id, honest_mark FROM positions "
-            "WHERE bar_id = ? AND honest_mark IS NOT NULL AND honest_mark != ''",
-            (g.bar_id,),
+            "WHERE bar_id = ? AND honest_mark IS NOT NULL AND honest_mark != '' "
+            "ORDER BY expiry_closed ASC LIMIT ?",
+            (g.bar_id, HZN_MAX_CODES_PER_CHECK),
         ).fetchall()
-        if not rows:
-            return jsonify({"checked": 0, "removed": 0, "ids": []})
 
-        code_to_id = {r["honest_mark"]: r["id"] for r in rows}
-        sold_codes = _check_honest_marks(list(code_to_id.keys()))
-        sold_ids = [code_to_id[c] for c in sold_codes if c in code_to_id]
+    if not rows:
+        return jsonify({"checked": 0, "removed": 0, "ids": []})
 
-        if sold_ids:
+    code_to_id = {r["honest_mark"]: r["id"] for r in rows}
+    sold_codes = _check_honest_marks(list(code_to_id.keys()))
+    sold_ids = [code_to_id[c] for c in sold_codes if c in code_to_id]
+
+    if sold_ids:
+        with connect() as conn:
             placeholders = ",".join("?" * len(sold_ids))
             conn.execute(
                 f"DELETE FROM positions WHERE id IN ({placeholders}) AND bar_id = ?",
                 (*sold_ids, g.bar_id),
             )
-            logger.info("honest-mark removed %d positions for bar=%s", len(sold_ids), g.bar_id)
+        logger.info("honest-mark removed %d positions for bar=%s", len(sold_ids), g.bar_id)
 
     return jsonify({"checked": len(rows), "removed": len(sold_ids), "ids": sold_ids})
 
@@ -777,6 +807,7 @@ def schedule_xlsx():
         return _err("Не удалось получить таблицу", HTTPStatus.BAD_GATEWAY)
 
 @app.get("/api/bars")
+@require_auth
 def list_bars():
     with connect() as conn:
         rows = conn.execute("SELECT * FROM bars ORDER BY code").fetchall()
@@ -785,11 +816,20 @@ def list_bars():
 def _err(msg: str, code: int = HTTPStatus.BAD_REQUEST):
     return jsonify({"error": msg}), code
 
+@app.errorhandler(HTTPStatus.REQUEST_ENTITY_TOO_LARGE)
+def _too_large(_e):
+    return jsonify({"error": "Слишком большой запрос"}), HTTPStatus.REQUEST_ENTITY_TOO_LARGE
+
 def _create_session(conn, user_id: int) -> str:
     token = new_token()
     conn.execute(
+        "DELETE FROM sessions WHERE expires_at < ?",
+        (datetime.now(timezone.utc).replace(tzinfo=None).isoformat(timespec="seconds"),),
+    )
+    conn.execute(
         "INSERT INTO sessions (token, user_id, expires_at, user_agent) VALUES (?, ?, ?, ?)",
-        (token, user_id, session_expiry(), request.headers.get("User-Agent", "")[:200]),
+        (hash_token(token), user_id, session_expiry(),
+         request.headers.get("User-Agent", "")[:200]),
     )
     return token
 

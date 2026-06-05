@@ -33,6 +33,9 @@ def verify_password(password: str, stored: str) -> bool:
 def new_token() -> str:
     return secrets.token_urlsafe(36)
 
+def hash_token(token: str) -> str:
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
 def _utcnow_naive() -> datetime:
     return datetime.now(timezone.utc).replace(tzinfo=None)
 

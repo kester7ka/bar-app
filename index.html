@@ -2,6 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://bar-app-production-79d1.up.railway.app https://api.open-meteo.com http://127.0.0.1:5000 http://localhost:5000; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -140,14 +141,11 @@
                 
                 <div class="news-card" id="news-card">
                     <div class="news-head">
-                        <span class="news-version">0.6.5</span>
+                        <span class="news-version">0.6.6</span>
                         <h3 class="news-title">Что нового</h3>
                     </div>
                     <ul class="news-list">
-                        <li><b>Автоподтяжка из базы знаний</b>: когда вводишь ТОВ в форме добавления позиции, приложение само находит товар в базе, подставляет название и срок после вскрытия — на втором шаге дни уже стоят, остаётся подтвердить.</li>
-                        <li><b>Убрана авто-генерация ТОВ</b>: поле всегда пустое для новой позиции — ТОВ статичен и его всегда вводишь руками (или подтягивается со сканера).</li>
-                        <li><b>Админ может обновлять базу</b>: в админ-панели появилась загрузка XLSX. Принимает оба формата файлов (ТОВ номера и Сроки хранения). Существующие позиции обновляются, новые добавляются, старые без обновлений — остаются.</li>
-                        <li>Алкоголь из базы знаний удалён. ТОВ-расходники теперь без «штук в упаковке».</li>
+                        <li>Фикс безопасности. После обновления нужно войти заново один раз — это нормально.</li>
                     </ul>
                 </div>
             </div>
@@ -486,7 +484,7 @@
                     <label class="field">
                         <span>Пароль</span>
                         <div class="password-input">
-                            <input type="password" name="password" required minlength="6" autocomplete="new-password">
+                            <input type="password" name="password" required minlength="8" autocomplete="new-password">
                             <button type="button" class="password-toggle" data-pwd-toggle aria-label="Показать пароль">
                                 <svg class="eye-show" viewBox="0 0 24 24" width="20" height="20"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>
                                 <svg class="eye-hide" viewBox="0 0 24 24" width="20" height="20"><path d="M2 12s3.5-7 10-7c2 0 3.7.5 5.2 1.3M22 12s-3.5 7-10 7c-2 0-3.7-.5-5.2-1.3M4 4l16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -645,7 +643,7 @@
                         <div class="about-logo">B</div>
                         <div>
                             <div class="about-title">Bar Manager</div>
-                            <div class="about-version">версия 0.6.5</div>
+                            <div class="about-version">версия 0.6.6</div>
                         </div>
                     </div>
 
