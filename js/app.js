@@ -39,6 +39,9 @@ const Boot = (() => {
         if (typeof Positions !== 'undefined' && Positions.startHonestMarkPolling) {
             Positions.startHonestMarkPolling();
         }
+        if (typeof KB !== 'undefined' && KB.loadOverrides) {
+            KB.loadOverrides();
+        }
     }
 
     return { start, afterAuth };

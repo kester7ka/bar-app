@@ -1,13 +1,99 @@
 const KB = (() => {
     const el = (id) => document.getElementById(id);
+    const OVERRIDES_KEY = 'bar-app:kb-overrides';
 
     let activeTab = 'shelf';
     let searchQuery = '';
     let expanded = new Set();
+    let pickMode = null;
+    let overrides = { shelf: [], tov: [], updated_at: null };
+    let mergedCache = null;
+
+    try {
+        const raw = localStorage.getItem(OVERRIDES_KEY);
+        if (raw) overrides = JSON.parse(raw);
+    } catch {}
+
+    async function loadOverrides() {
+        try {
+            const data = await Api.get('/api/kb');
+            if (data) {
+                overrides = {
+                    shelf: data.shelf || [],
+                    tov: data.tov || [],
+                    updated_at: data.updated_at || null,
+                    uploaded_by: data.uploaded_by || null,
+                };
+                try { localStorage.setItem(OVERRIDES_KEY, JSON.stringify(overrides)); } catch {}
+                mergedCache = null;
+            }
+        } catch {}
+    }
+
+    function deepClone(x) { return JSON.parse(JSON.stringify(x)); }
+
+    function getMerged() {
+        if (mergedCache) return mergedCache;
+        const base = deepClone(KB_DATA);
+        for (const section of ['shelf', 'tov']) {
+            const groups = base[section];
+            const byTov = {};
+            groups.forEach(g => g.items.forEach(it => {
+                if (it.tov) byTov[it.tov] = { group: g, item: it };
+            }));
+            const newByGroup = {};
+            for (const ov of (overrides[section] || [])) {
+                const tov = ov.tov;
+                if (!tov) continue;
+                if (byTov[tov]) {
+                    if (ov.name) byTov[tov].item.name = ov.name;
+                    if (section === 'shelf' && ov.life !== undefined) byTov[tov].item.life = ov.life;
+                } else {
+                    const gname = ov.group || 'Прочее';
+                    if (!newByGroup[gname]) newByGroup[gname] = [];
+                    const itm = { tov, name: ov.name || null };
+                    if (section === 'shelf') itm.life = ov.life || null;
+                    newByGroup[gname].push(itm);
+                }
+            }
+            for (const [gname, items] of Object.entries(newByGroup)) {
+                let g = groups.find(x => x.group === gname);
+                if (!g) { g = { group: gname, items: [] }; groups.push(g); }
+                g.items.push(...items);
+            }
+        }
+        mergedCache = base;
+        return base;
+    }
+
+    function invalidateCache() { mergedCache = null; }
+
+    function getOverridesMeta() {
+        return {
+            updated_at: overrides.updated_at || null,
+            uploaded_by: overrides.uploaded_by || null,
+            count_shelf: (overrides.shelf || []).length,
+            count_tov: (overrides.tov || []).length,
+        };
+    }
 
     function open() {
+        pickMode = null;
         el('kb-overlay').classList.add('show');
+        el('kb-overlay').classList.remove('pick-mode');
         activeTab = 'shelf';
+        searchQuery = '';
+        expanded = new Set();
+        const inp = el('kb-search');
+        if (inp) inp.value = '';
+        render();
+    }
+
+    function openPicker(callback) {
+        pickMode = callback;
+        el('kb-overlay').classList.add('show');
+        el('kb-overlay').classList.add('pick-mode');
+        activeTab = 'tov';
         searchQuery = '';
         expanded = new Set();
         const inp = el('kb-search');
@@ -17,6 +103,8 @@ const KB = (() => {
 
     function close() {
         el('kb-overlay').classList.remove('show');
+        el('kb-overlay').classList.remove('pick-mode');
+        pickMode = null;
     }
 
     function setTab(t) {
@@ -35,7 +123,8 @@ const KB = (() => {
     }
 
     function filteredGroups() {
-        const groups = activeTab === 'shelf' ? KB_DATA.shelf : KB_DATA.tov;
+        const merged = getMerged();
+        const groups = activeTab === 'shelf' ? merged.shelf : merged.tov;
         const q = searchQuery.trim().toLowerCase();
         if (!q) return groups;
         return groups
@@ -119,6 +208,18 @@ const KB = (() => {
         wrap.querySelectorAll('.kb-copy').forEach(b => {
             b.addEventListener('click', async (e) => {
                 e.stopPropagation();
+                if (pickMode) {
+                    const cb = pickMode;
+                    const data = {
+                        tov: b.dataset.tov,
+                        digits: b.dataset.copy,
+                        name: b.dataset.name,
+                        life: b.dataset.life
+                    };
+                    close();
+                    cb(data);
+                    return;
+                }
                 const v = b.dataset.copy;
                 try {
                     await navigator.clipboard.writeText(v);
@@ -131,12 +232,13 @@ const KB = (() => {
     }
 
     function itemCard(it, isShelf, q) {
-        const code = it.tov ? `
-            <button class="kb-tov kb-copy" data-copy="${escapeHtml(it.tov)}" title="Скопировать">
+        const digits = it.tov ? it.tov.replace(/^[А-Яа-яA-Za-z]+/, '').trim() : '';
+        const code = `
+            <button class="kb-tov kb-copy" data-copy="${escapeHtml(digits)}" data-tov="${escapeHtml(it.tov)}" data-name="${escapeHtml(it.name || '')}" data-life="${escapeHtml(it.life || '')}" title="${pickMode ? 'Выбрать' : 'Скопировать номер'}">
                 <span class="kb-tov-text">${highlight(it.tov, q)}</span>
-                <span class="kb-copy-ic">${copyIcon()}</span>
+                <span class="kb-copy-ic">${pickMode ? '' : copyIcon()}</span>
             </button>
-        ` : `<span class="kb-tov kb-tov-none">без кода</span>`;
+        `;
         const name = it.name
             ? `<div class="kb-name">${highlight(it.name, q)}</div>`
             : `<div class="kb-name kb-name-empty">без названия</div>`;
@@ -145,13 +247,9 @@ const KB = (() => {
             meta = it.life
                 ? `<div class="kb-meta kb-life">${lifeIcon()}<span>${highlight(it.life, q)}</span></div>`
                 : `<div class="kb-meta kb-life kb-meta-empty">${lifeIcon()}<span>не указано</span></div>`;
-        } else {
-            meta = it.pack
-                ? `<div class="kb-meta kb-pack">${packIcon()}<span>${highlight(it.pack, q)}</span></div>`
-                : '';
         }
         return `
-            <div class="kb-item">
+            <div class="kb-item${pickMode ? ' pickable' : ''}" data-pick="${pickMode ? '1' : ''}">
                 <div class="kb-item-head">${code}</div>
                 ${name}
                 ${meta}
@@ -172,7 +270,8 @@ const KB = (() => {
             });
         }
         el('kb-expand-all')?.addEventListener('click', () => {
-            const groups = activeTab === 'shelf' ? KB_DATA.shelf : KB_DATA.tov;
+            const merged = getMerged();
+            const groups = activeTab === 'shelf' ? merged.shelf : merged.tov;
             if (expanded.size === groups.length) {
                 expanded = new Set();
             } else {
@@ -182,5 +281,5 @@ const KB = (() => {
         });
     }
 
-    return { init, open, close };
+    return { init, open, close, openPicker, getMerged, invalidateCache, loadOverrides, getOverridesMeta };
 })();

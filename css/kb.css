@@ -2,6 +2,22 @@
     background: var(--bg);
 }
 
+.kb-overlay.pick-mode .kb-tab[data-tab="shelf"] {
+    display: none;
+}
+
+.kb-overlay.pick-mode .kb-tab[data-tab="tov"] {
+    flex: 1;
+}
+
+.kb-overlay.pick-mode .kb-tov {
+    background: var(--accent-soft);
+}
+
+.kb-item.pickable {
+    cursor: pointer;
+}
+
 .kb-body {
     padding: 0;
     display: flex;

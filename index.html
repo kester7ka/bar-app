@@ -132,12 +132,14 @@
                 
                 <div class="news-card" id="news-card">
                     <div class="news-head">
-                        <span class="news-version">0.6.3</span>
+                        <span class="news-version">0.6.5</span>
                         <h3 class="news-title">Что нового</h3>
                     </div>
                     <ul class="news-list">
-                        <li><b>База знаний</b> в Инструментах: все ТОВ-номера расходников (стаканы, крышки, сахар, салфетки, баллончики и пр.) и сроки годности по категориям (кофе, молочка, сиропы, фрукты, алкоголь и пр.). Поиск по коду и названию, тап на ТОВ — копирует в буфер.</li>
-                        <li>Сканер: если камера была заблокирована в браузере, теперь показывает конкретную причину и говорит куда нажать чтобы разрешить.</li>
+                        <li><b>Автоподтяжка из базы знаний</b>: когда вводишь ТОВ в форме добавления позиции, приложение само находит товар в базе, подставляет название и срок после вскрытия — на втором шаге дни уже стоят, остаётся подтвердить.</li>
+                        <li><b>Убрана авто-генерация ТОВ</b>: поле всегда пустое для новой позиции — ТОВ статичен и его всегда вводишь руками (или подтягивается со сканера).</li>
+                        <li><b>Админ может обновлять базу</b>: в админ-панели появилась загрузка XLSX. Принимает оба формата файлов (ТОВ номера и Сроки хранения). Существующие позиции обновляются, новые добавляются, старые без обновлений — остаются.</li>
+                        <li>Алкоголь из базы знаний удалён. ТОВ-расходники теперь без «штук в упаковке».</li>
                     </ul>
                 </div>
             </div>
@@ -344,10 +346,8 @@
 
                         <label class="field">
                             <span>TOB</span>
-                            <div class="tob-row">
-                                <input type="text" name="tob" id="tob-input" maxlength="6" minlength="6" inputmode="numeric" pattern="\d{6}" required placeholder="6 цифр">
-                                <button type="button" class="btn-ghost" id="btn-gen-tob">Сгенерировать</button>
-                            </div>
+                            <input type="text" name="tob" id="tob-input" maxlength="7" minlength="6" inputmode="numeric" pattern="\d{6,7}" required placeholder="6-7 цифр">
+                            <span class="field-hint" id="tob-kb-hint"></span>
                         </label>
 
                         <label class="field">
@@ -637,7 +637,7 @@
                         <div class="about-logo">B</div>
                         <div>
                             <div class="about-title">Bar Manager</div>
-                            <div class="about-version">версия 0.6.3</div>
+                            <div class="about-version">версия 0.6.5</div>
                         </div>
                     </div>
 
@@ -802,6 +802,21 @@
                     <button class="btn-primary" id="admin-keygen-btn">Сгенерировать ключи</button>
 
                     <div class="admin-keys hidden" id="admin-keys"></div>
+                </section>
+
+                <section class="admin-card">
+                    <h3 class="admin-title">База знаний</h3>
+                    <p class="admin-hint" id="admin-kb-meta">обновления не загружались</p>
+                    <div class="admin-kb-actions">
+                        <label class="admin-kb-upload btn-primary" for="admin-kb-file">
+                            Загрузить XLSX
+                        </label>
+                        <input type="file" id="admin-kb-file" accept=".xlsx,.xls" hidden>
+                        <button type="button" class="btn-ghost" id="admin-kb-reset">Сбросить</button>
+                    </div>
+                    <p class="admin-kb-help">
+                        Принимает оба файла — «ТОВ НОМЕРА» и «Сроки хранения». Структура файла должна быть как в исходниках: <b>столбец A</b> — заголовок группы (строка без ТОВ), <b>столбец B</b> — ТОВ, <b>C</b> — название, <b>D</b> — срок после вскрытия (только в файле сроков). Существующие ТОВ обновляются, новые добавляются, старые без обновления — остаются.
+                    </p>
                 </section>
 
                 <section class="admin-card">

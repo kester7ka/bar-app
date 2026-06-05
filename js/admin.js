@@ -33,7 +33,105 @@ const Admin = (() => {
         const activeId = Api.getBarOverride() || (Auth.bar()?.id ?? '');
         fillSelect(document.getElementById('admin-active-bar'), activeId);
         fillSelect(document.getElementById('admin-keygen-bar'), activeId);
-        loadAllKeys();   
+        loadAllKeys();
+        renderKbMeta();
+    }
+
+    function renderKbMeta() {
+        const el = document.getElementById('admin-kb-meta');
+        if (!el || typeof KB === 'undefined' || !KB.getOverridesMeta) return;
+        const m = KB.getOverridesMeta();
+        if (!m.updated_at) {
+            el.textContent = 'обновления не загружались — используются встроенные данные';
+            return;
+        }
+        const total = (m.count_shelf || 0) + (m.count_tov || 0);
+        const dt = new Date(m.updated_at);
+        const pad = (n) => String(n).padStart(2, '0');
+        const ts = `${pad(dt.getDate())}.${pad(dt.getMonth()+1)}.${dt.getFullYear()} ${pad(dt.getHours())}:${pad(dt.getMinutes())}`;
+        el.textContent = `${total} обновлений · загружено ${ts}`;
+    }
+
+    function parseKbXlsx(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onerror = () => reject(new Error('Не удалось прочитать файл'));
+            reader.onload = (e) => {
+                try {
+                    const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+                    const sheet = wb.Sheets[wb.SheetNames[0]];
+                    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null });
+                    resolve(extractKbRows(rows));
+                } catch (err) {
+                    reject(err);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        });
+    }
+
+    function extractKbRows(rows) {
+        const clean = (v) => v == null ? null : String(v).replace(/ /g, ' ').replace(/\s+/g, ' ').trim() || null;
+        const isCode = (s) => !!s && /^(ТОВ|ДВП)\d+/i.test(s);
+
+        let shelfMode = null;
+        let group = 'Прочее';
+        const shelf = [];
+        const tov = [];
+
+        for (const r of rows) {
+            const a = clean(r[0]);
+            const b = clean(r[1]);
+            const c = clean(r[2]);
+            const d = clean(r[3]);
+
+            if (shelfMode === null) {
+                if (b === 'ТОВ' || c === 'Наименование товара') { shelfMode = true; continue; }
+                if (a && /товар|номер|код/i.test(a) && b && /назван|товар/i.test(b)) { shelfMode = false; continue; }
+            }
+
+            if (shelfMode) {
+                if (b && !isCode(b) && !c && !d) { group = b; continue; }
+                if (isCode(b)) shelf.push({ tov: b, name: c, life: d, group });
+            } else {
+                if (!a && b && !c) { group = b; continue; }
+                if (isCode(a)) tov.push({ tov: a, name: b, group });
+            }
+        }
+        return { shelf, tov };
+    }
+
+    async function handleKbFile(file) {
+        if (!file) return;
+        try {
+            Utils.toast('Парсим файл…');
+            const parsed = await parseKbXlsx(file);
+            const total = parsed.shelf.length + parsed.tov.length;
+            if (total === 0) {
+                Utils.toast('Не нашёл ТОВ в файле');
+                return;
+            }
+            const res = await Api.post('/api/kb/upload', parsed);
+            KB.invalidateCache();
+            await KB.loadOverrides();
+            renderKbMeta();
+            Utils.toast(`Обновлено: сроки ${res.shelf_changed}, ТОВ ${res.tov_changed}`);
+        } catch (err) {
+            Utils.toast(err.message || 'Не удалось загрузить файл');
+        }
+    }
+
+    async function resetKb() {
+        if (!confirm('Сбросить все загруженные обновления базы знаний?')) return;
+        try {
+            await Api.delete('/api/kb');
+            KB.invalidateCache();
+            await KB.loadOverrides();
+            renderKbMeta();
+            Utils.toast('Сброшено');
+        } catch (err) {
+            Utils.toast(err.message || 'Не удалось сбросить');
+        }
     }
 
     function close() {
@@ -177,6 +275,15 @@ const Admin = (() => {
         document.querySelectorAll('#admin-keys-filter .admin-filter-chip').forEach(c => {
             c.addEventListener('click', () => setFilter(c.dataset.filter));
         });
+        const kbFile = document.getElementById('admin-kb-file');
+        if (kbFile) {
+            kbFile.addEventListener('change', (e) => {
+                const f = e.target.files?.[0];
+                handleKbFile(f);
+                e.target.value = '';
+            });
+        }
+        document.getElementById('admin-kb-reset')?.addEventListener('click', resetKb);
     }
 
     return { init, open, close };

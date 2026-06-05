@@ -245,16 +245,21 @@ const Positions = (() => {
         showHonestMark(position?.honest_mark || '');
         document.getElementById('modal-title').textContent = position ? 'Редактировать позицию' : 'Новая позиция';
 
+        kbStashedDays = null;
+        const hint = document.getElementById('tob-kb-hint');
+        if (hint) { hint.textContent = ''; hint.classList.remove('hit'); }
+
         if (position) {
             form.name.value = position.name;
             form.tob.value = position.tob;
-            
+
             form.is_open.checked = position.is_open;
             applyExpiryFields(position);
             setCategory(position.category);
+            tryKbAutofill(position.tob, { silent: true });
         } else {
-            form.tob.value = Utils.generateTob();
-            
+            form.tob.value = '';
+
             setProduction(`${Utils.today()}T12:00`);
             document.getElementById('closed-shelf-days').value = 30;
             updateExpiryPreview();
@@ -268,8 +273,69 @@ const Positions = (() => {
         document.getElementById(id).classList.remove('show');
     };
 
-    
     let pendingDraft = null;
+    let kbStashedDays = null;
+
+    function parseShelfDays(life) {
+        if (!life) return null;
+        const s = String(life).toLowerCase();
+        let m;
+        if ((m = s.match(/(\d+)\s*суток/)))                       return parseInt(m[1], 10);
+        if ((m = s.match(/(\d+)\s*(?:дней|дня|день)/)))           return parseInt(m[1], 10);
+        if ((m = s.match(/(\d+)\s*(?:часов|часа|час)/))) {
+            const h = parseInt(m[1], 10);
+            return Math.max(1, Math.round(h / 24));
+        }
+        if ((m = s.match(/(\d+)\s*(?:месяцев|месяца|месяц)/)))    return parseInt(m[1], 10) * 30;
+        return null;
+    }
+
+    function findInKB(digits) {
+        if (!digits || digits.length < 6) return null;
+        const merged = (typeof KB !== 'undefined' && KB.getMerged) ? KB.getMerged() : KB_DATA;
+        for (const section of ['shelf', 'tov']) {
+            const groups = merged[section] || [];
+            for (const g of groups) {
+                for (const it of g.items) {
+                    if (!it.tov) continue;
+                    const d = String(it.tov).replace(/^[А-Яа-яA-Za-z]+/, '').trim();
+                    if (d === digits) {
+                        return { name: it.name || null, life: it.life || null, group: g.group };
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    function tryKbAutofill(digits, opts = {}) {
+        const hint = document.getElementById('tob-kb-hint');
+        const nameInput = document.querySelector('#position-form input[name="name"]');
+        if (!hint) return;
+        if (!digits || digits.length < 6) {
+            hint.textContent = '';
+            hint.classList.remove('hit');
+            kbStashedDays = null;
+            return;
+        }
+        const hit = findInKB(digits);
+        if (!hit) {
+            hint.textContent = 'в базе знаний не найдено';
+            hint.classList.remove('hit');
+            kbStashedDays = null;
+            return;
+        }
+        hint.classList.add('hit');
+        if (nameInput && hit.name && !nameInput.value.trim()) {
+            nameInput.value = hit.name;
+        }
+        const days = parseShelfDays(hit.life);
+        kbStashedDays = days;
+        const bits = ['✓ ' + (hit.name || 'из базы')];
+        if (hit.life) bits.push('после вскрытия: ' + hit.life);
+        hint.textContent = bits.join(' · ');
+        if (!opts.silent && !opts.quiet) Utils.toast('Подтянуто из базы знаний');
+    }
 
     
     const BARCODES_KEY = 'bar-app:barcodes';
@@ -522,23 +588,28 @@ const Positions = (() => {
         document.getElementById('step2-name').textContent = draft.name;
         document.getElementById('step2-tob').textContent = draft.tob;
 
-        
         let value = draft.shelf_open_days;
-        let fromTob = false;
+        let source = '';
         if (!value) {
             const existing = Storage.getByTob(draft.tob);
             if (existing && existing.id !== draft.id && existing.shelf_open_days) {
                 value = existing.shelf_open_days;
-                fromTob = true;
+                source = 'tob';
             }
+        }
+        if (!value && kbStashedDays) {
+            value = kbStashedDays;
+            source = 'kb';
         }
 
         const input = document.getElementById('shelf-step-input');
         input.value = value || '';
 
         const hint = document.getElementById('step2-hint');
-        if (fromTob) {
+        if (source === 'tob') {
             hint.textContent = 'Подтянуто из позиции с тем же TOB. Можно изменить.';
+        } else if (source === 'kb') {
+            hint.textContent = 'Подтянуто из базы знаний (срок после вскрытия). Можно изменить.';
         } else if (value) {
             hint.textContent = 'Из основной формы. Можно изменить.';
         } else {
@@ -798,9 +869,15 @@ const Positions = (() => {
         document.getElementById('btn-scan-hmark')?.addEventListener('click', () => startHonestMarkScan({ skipOpenModal: true }));
         document.getElementById('btn-clear-hmark')?.addEventListener('click', () => showHonestMark(''));
         document.getElementById('position-form').addEventListener('submit', handleSubmit);
-        document.getElementById('btn-gen-tob').addEventListener('click', () => {
-            document.getElementById('tob-input').value = Utils.generateTob();
-        });
+
+        const tobInput = document.getElementById('tob-input');
+        if (tobInput) {
+            tobInput.addEventListener('input', () => {
+                const raw = (tobInput.value || '').replace(/\D/g, '');
+                tobInput.value = raw;
+                tryKbAutofill(raw);
+            });
+        }
 
         document.querySelectorAll('[data-close]').forEach(el => {
             el.addEventListener('click', () => {

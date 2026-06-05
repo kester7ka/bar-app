@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 import os
 import re
@@ -9,6 +10,7 @@ from collections import deque
 from datetime import date, datetime, timedelta, timezone
 from functools import wraps
 from http import HTTPStatus
+from pathlib import Path
 from time import time
 from typing import Optional
 
@@ -316,6 +318,102 @@ def admin_list_keys():
         }
         for r in rows
     ])
+
+
+KB_OVERRIDES_PATH = Path(
+    os.environ.get("BAR_APP_KB_PATH")
+    or (Path(os.environ.get("BAR_APP_DB_PATH", "")).parent / "kb_overrides.json"
+        if os.environ.get("BAR_APP_DB_PATH") else Path(__file__).parent / "kb_overrides.json")
+)
+
+
+def _load_kb_overrides() -> dict:
+    if not KB_OVERRIDES_PATH.exists():
+        return {"shelf": [], "tov": [], "updated_at": None, "uploaded_by": None}
+    try:
+        with open(KB_OVERRIDES_PATH, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        data.setdefault("shelf", [])
+        data.setdefault("tov", [])
+        data.setdefault("updated_at", None)
+        data.setdefault("uploaded_by", None)
+        return data
+    except Exception:
+        return {"shelf": [], "tov": [], "updated_at": None, "uploaded_by": None}
+
+
+def _save_kb_overrides(data: dict) -> None:
+    KB_OVERRIDES_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with open(KB_OVERRIDES_PATH, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+
+@app.get("/api/kb")
+def kb_get():
+    return jsonify(_load_kb_overrides())
+
+
+@app.post("/api/kb/upload")
+@require_auth
+@require_admin
+def kb_upload():
+    payload = request.get_json(silent=True) or {}
+    incoming_shelf = payload.get("shelf") or []
+    incoming_tov = payload.get("tov") or []
+    if not isinstance(incoming_shelf, list) or not isinstance(incoming_tov, list):
+        return _err("Неверный формат данных", HTTPStatus.BAD_REQUEST)
+
+    existing = _load_kb_overrides()
+
+    def merge(target: list, incoming: list) -> int:
+        idx = {it.get("tov"): i for i, it in enumerate(target) if it.get("tov")}
+        added = 0
+        updated = 0
+        for it in incoming:
+            tov = (it.get("tov") or "").strip()
+            if not tov:
+                continue
+            record = {
+                "tov": tov,
+                "name": (it.get("name") or "").strip() or None,
+                "group": (it.get("group") or "Прочее").strip(),
+            }
+            life = it.get("life")
+            if life is not None:
+                record["life"] = str(life).strip() or None
+            if tov in idx:
+                target[idx[tov]] = record
+                updated += 1
+            else:
+                target.append(record)
+                idx[tov] = len(target) - 1
+                added += 1
+        return added + updated
+
+    n_shelf = merge(existing["shelf"], incoming_shelf)
+    n_tov = merge(existing["tov"], incoming_tov)
+    existing["updated_at"] = datetime.now(timezone.utc).replace(tzinfo=None).isoformat() + "Z"
+    existing["uploaded_by"] = g.user_id
+    _save_kb_overrides(existing)
+    logger.info("kb upload by %s: shelf=%d tov=%d", g.user_id, n_shelf, n_tov)
+    return jsonify({
+        "ok": True,
+        "shelf_changed": n_shelf,
+        "tov_changed": n_tov,
+        "total_shelf": len(existing["shelf"]),
+        "total_tov": len(existing["tov"]),
+        "updated_at": existing["updated_at"],
+    })
+
+
+@app.delete("/api/kb")
+@require_auth
+@require_admin
+def kb_reset():
+    if KB_OVERRIDES_PATH.exists():
+        KB_OVERRIDES_PATH.unlink()
+    return ("", HTTPStatus.NO_CONTENT)
+
 
 @app.get("/api/positions")
 @require_auth
