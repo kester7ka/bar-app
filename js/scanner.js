@@ -7,14 +7,20 @@ const Scanner = (() => {
     let onDetect = null;
     let lastValue = null;
     let stableHits = 0;
+    let lastDetectAt = 0;
 
     const STABLE_HITS_NEEDED = 2;
+    const DETECT_INTERVAL = 80;
 
     function el(id) { return document.getElementById(id); }
 
-    async function ensureVideo() {
+    function clearViewport() {
+        const v = el('scanner-viewport');
+        v.innerHTML = '';
+    }
+
+    function buildNativeViewport() {
         const viewport = el('scanner-viewport');
-        if (video && viewport.contains(video)) return video;
         viewport.innerHTML = '';
         video = document.createElement('video');
         video.id = 'scanner-video';
@@ -23,27 +29,45 @@ const Scanner = (() => {
         video.muted = true;
         video.setAttribute('playsinline', 'true');
         viewport.appendChild(video);
-        const targetWrap = document.createElement('div');
-        targetWrap.className = 'scanner-target';
-        targetWrap.id = 'scanner-target';
-        targetWrap.innerHTML = `
+        const target = document.createElement('div');
+        target.className = 'scanner-target';
+        target.id = 'scanner-target';
+        target.innerHTML = `
             <span class="scn-corner tl"></span>
             <span class="scn-corner tr"></span>
             <span class="scn-corner bl"></span>
             <span class="scn-corner br"></span>
         `;
-        viewport.appendChild(targetWrap);
-        const focusRipple = document.createElement('div');
-        focusRipple.className = 'scanner-focus-ripple';
-        focusRipple.id = 'scanner-focus-ripple';
-        viewport.appendChild(focusRipple);
+        viewport.appendChild(target);
+        const ripple = document.createElement('div');
+        ripple.className = 'scanner-focus-ripple';
+        ripple.id = 'scanner-focus-ripple';
+        viewport.appendChild(ripple);
         viewport.addEventListener('click', handleTap);
-        return video;
+    }
+
+    function buildFallbackViewport() {
+        const viewport = el('scanner-viewport');
+        viewport.innerHTML = '';
+        const wrap = document.createElement('div');
+        wrap.id = 'scanner-h5q';
+        wrap.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;';
+        viewport.appendChild(wrap);
+        const target = document.createElement('div');
+        target.className = 'scanner-target static';
+        target.id = 'scanner-target';
+        target.innerHTML = `
+            <span class="scn-corner tl"></span>
+            <span class="scn-corner tr"></span>
+            <span class="scn-corner bl"></span>
+            <span class="scn-corner br"></span>
+        `;
+        viewport.appendChild(target);
     }
 
     function resetTarget() {
         const t = el('scanner-target');
-        if (!t) return;
+        if (!t || t.classList.contains('static')) return;
         t.classList.remove('locked');
         t.style.left = '';
         t.style.top = '';
@@ -53,7 +77,7 @@ const Scanner = (() => {
 
     function moveTarget(rect) {
         const t = el('scanner-target');
-        if (!t || !video) return;
+        if (!t || t.classList.contains('static') || !video) return;
         const vRect = video.getBoundingClientRect();
         const viewport = el('scanner-viewport');
         const vpRect = viewport.getBoundingClientRect();
@@ -85,15 +109,25 @@ const Scanner = (() => {
         onDetect = callback;
         lastValue = null;
         stableHits = 0;
+        lastDetectAt = 0;
         el('scanner-overlay').classList.add('show');
         await new Promise(r => requestAnimationFrame(r));
-        await ensureVideo();
+        const hasNative = 'BarcodeDetector' in window;
+        if (hasNative) {
+            await openNative();
+        } else {
+            await openFallback();
+        }
+    }
+
+    async function openNative() {
+        buildNativeViewport();
         try {
             stream = await navigator.mediaDevices.getUserMedia({
                 video: {
                     facingMode: { ideal: 'environment' },
-                    width: { ideal: 1920 },
-                    height: { ideal: 1080 }
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
                 },
                 audio: false
             });
@@ -104,77 +138,94 @@ const Scanner = (() => {
             await close();
             return;
         }
-        if ('BarcodeDetector' in window) {
-            try {
-                detector = new BarcodeDetector({
-                    formats: ['qr_code', 'data_matrix', 'ean_13', 'ean_8',
-                              'code_128', 'code_39', 'code_93', 'codabar',
-                              'itf', 'upc_a', 'upc_e', 'pdf417', 'aztec']
-                });
-                startNativeLoop();
-                return;
-            } catch {}
+        try {
+            detector = new BarcodeDetector({
+                formats: ['qr_code', 'data_matrix', 'ean_13', 'ean_8',
+                          'code_128', 'code_39', 'code_93', 'codabar',
+                          'itf', 'upc_a', 'upc_e', 'pdf417', 'aztec']
+            });
+            startNativeLoop();
+        } catch (e) {
+            await openFallback();
         }
-        startFallback();
+    }
+
+    async function openFallback() {
+        buildFallbackViewport();
+        if (typeof Html5Qrcode === 'undefined') {
+            Utils.toast('Сканер не поддерживается этим браузером');
+            await close();
+            return;
+        }
+        html5fallback = new Html5Qrcode('scanner-h5q', { verbose: false });
+        try {
+            await html5fallback.start(
+                { facingMode: { ideal: 'environment' } },
+                {
+                    fps: 12,
+                    qrbox: undefined,
+                    disableFlip: false,
+                    experimentalFeatures: { useBarCodeDetectorIfSupported: true }
+                },
+                (text) => handleSuccess(text),
+                () => {}
+            );
+            await new Promise(r => setTimeout(r, 250));
+            video = document.querySelector('#scanner-h5q video');
+            if (video) {
+                video.setAttribute('playsinline', 'true');
+                video.playsInline = true;
+                video.style.objectFit = 'cover';
+            }
+        } catch (e) {
+            Utils.toast('Не удалось включить камеру. Дай доступ.');
+            await close();
+        }
     }
 
     function startNativeLoop() {
         const tick = async () => {
             if (!video || !detector) return;
+            const now = Date.now();
+            if (now - lastDetectAt < DETECT_INTERVAL) {
+                rafId = requestAnimationFrame(tick);
+                return;
+            }
+            lastDetectAt = now;
             try {
-                const codes = await detector.detect(video);
-                if (codes && codes.length) {
-                    const code = codes[0];
-                    const rect = code.cornerPoints
-                        ? pointsToRect(code.cornerPoints)
-                        : (code.boundingBox || null);
-                    if (rect) moveTarget(rect);
-                    if (code.rawValue === lastValue) {
-                        stableHits++;
-                        if (stableHits >= STABLE_HITS_NEEDED) {
-                            return handleSuccess(code.rawValue);
+                if (video.readyState >= 2) {
+                    const codes = await detector.detect(video);
+                    if (codes && codes.length) {
+                        const code = codes[0];
+                        const rect = code.cornerPoints
+                            ? pointsToRect(code.cornerPoints)
+                            : (code.boundingBox || null);
+                        if (rect) moveTarget(rect);
+                        if (code.rawValue === lastValue) {
+                            stableHits++;
+                            if (stableHits >= STABLE_HITS_NEEDED) {
+                                return handleSuccess(code.rawValue);
+                            }
+                        } else {
+                            lastValue = code.rawValue;
+                            stableHits = 1;
                         }
                     } else {
-                        lastValue = code.rawValue;
-                        stableHits = 1;
-                    }
-                } else {
-                    if (stableHits > 0 || lastValue) {
-                        stableHits = Math.max(0, stableHits - 1);
-                        if (stableHits === 0) {
-                            lastValue = null;
+                        if (stableHits > 0) {
+                            stableHits = Math.max(0, stableHits - 1);
+                            if (stableHits === 0) {
+                                lastValue = null;
+                                resetTarget();
+                            }
+                        } else {
                             resetTarget();
                         }
-                    } else {
-                        resetTarget();
                     }
                 }
             } catch {}
             rafId = requestAnimationFrame(tick);
         };
         rafId = requestAnimationFrame(tick);
-    }
-
-    function startFallback() {
-        if (typeof Html5Qrcode === 'undefined') {
-            Utils.toast('Сканер не поддерживается этим браузером');
-            close();
-            return;
-        }
-        const viewport = el('scanner-viewport');
-        const div = document.createElement('div');
-        div.id = 'scanner-h5q';
-        div.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;';
-        viewport.appendChild(div);
-        if (video) video.style.display = 'none';
-        html5fallback = new Html5Qrcode('scanner-h5q', { verbose: false });
-        html5fallback.start(
-            { facingMode: 'environment' },
-            { fps: 15, qrbox: { width: 260, height: 200 }, disableFlip: false,
-              experimentalFeatures: { useBarCodeDetectorIfSupported: true } },
-            (text) => handleSuccess(text),
-            () => {}
-        ).catch(() => { Utils.toast('Не удалось включить камеру'); close(); });
     }
 
     function handleSuccess(code) {
@@ -188,13 +239,15 @@ const Scanner = (() => {
     }
 
     function handleTap(e) {
-        if (!stream || !video) return;
+        if (!video) return;
         const rect = video.getBoundingClientRect();
         const x = (e.clientX - rect.left) / rect.width;
         const y = (e.clientY - rect.top) / rect.height;
         if (x < 0 || x > 1 || y < 0 || y > 1) return;
         try {
-            const track = stream.getVideoTracks()[0];
+            const src = stream || (video.srcObject || null);
+            const tracks = src && src.getVideoTracks ? src.getVideoTracks() : null;
+            const track = tracks && tracks[0];
             if (track && track.getCapabilities) {
                 const caps = track.getCapabilities();
                 const advanced = [];
@@ -219,6 +272,9 @@ const Scanner = (() => {
     }
 
     async function snapshot() {
+        if (!video) {
+            video = document.querySelector('#scanner-viewport video');
+        }
         if (!video || !video.videoWidth) {
             Utils.toast('Камера ещё не готова');
             return;
@@ -236,6 +292,13 @@ const Scanner = (() => {
                 if (codes && codes.length) found = codes[0].rawValue;
             } catch {}
         }
+        if (!found && 'BarcodeDetector' in window && !detector) {
+            try {
+                const tmp = new BarcodeDetector();
+                const codes = await tmp.detect(canvas);
+                if (codes && codes.length) found = codes[0].rawValue;
+            } catch {}
+        }
         if (!found && typeof jsQR !== 'undefined') {
             const ctx = canvas.getContext('2d');
             const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -244,11 +307,29 @@ const Scanner = (() => {
             });
             if (result) found = result.data;
         }
+        if (!found && typeof Html5Qrcode !== 'undefined') {
+            try {
+                const tmpDiv = document.createElement('div');
+                tmpDiv.style.cssText = 'position:absolute;left:-9999px;width:1px;height:1px;';
+                document.body.appendChild(tmpDiv);
+                const tmpId = 'scn-tmp-' + Date.now();
+                tmpDiv.id = tmpId;
+                const fileLike = await new Promise((resolve) => canvas.toBlob((b) => resolve(b), 'image/png'));
+                if (fileLike) {
+                    const tmpScanner = new Html5Qrcode(tmpId, { verbose: false });
+                    const file = new File([fileLike], 'snap.png', { type: 'image/png' });
+                    const txt = await tmpScanner.scanFile(file, false).catch(() => null);
+                    if (txt) found = txt;
+                    try { await tmpScanner.clear(); } catch {}
+                }
+                tmpDiv.remove();
+            } catch {}
+        }
         btn?.classList.remove('busy');
         if (found) {
             handleSuccess(found);
         } else {
-            Utils.toast('На фото ничего не нашлось — наведи ближе');
+            Utils.toast('На фото ничего не нашлось — поднеси ближе');
         }
     }
 
@@ -265,15 +346,14 @@ const Scanner = (() => {
             stream = null;
         }
         if (video) {
-            video.srcObject = null;
-            video.style.display = '';
+            try { video.srcObject = null; } catch {}
+            video = null;
         }
         detector = null;
         lastValue = null;
         stableHits = 0;
-        resetTarget();
-        const t = el('scanner-target');
-        if (t) t.classList.remove('success');
+        lastDetectAt = 0;
+        clearViewport();
         el('scanner-overlay').classList.remove('show');
         onDetect = null;
     }

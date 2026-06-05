@@ -39,17 +39,19 @@
 html, body {
     height: 100%;
     overflow: hidden;
-    
-    touch-action: pan-y;
-    -ms-touch-action: pan-y;
-    
-    -webkit-user-select: none;
-    user-select: none;
+    touch-action: manipulation;
+    -ms-touch-action: manipulation;
     -webkit-touch-callout: none;
     overscroll-behavior: contain;
 }
 
-input, textarea {
+.app, .overlay, .modal {
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+input, textarea, .admin-key-code, .admin-key, .qr-data, .pos-tob,
+.tob-tag, [contenteditable] {
     -webkit-user-select: text;
     user-select: text;
 }
@@ -127,6 +129,11 @@ h2 {
 
 .hidden {
     display: none !important;
+}
+
+html.pre-auth .screen.active,
+html.pre-auth .bottom-nav {
+    visibility: hidden;
 }
 
 .show-for-cookies {

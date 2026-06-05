@@ -25,7 +25,7 @@ const Boot = (() => {
     }
 
     async function afterAuth() {
-        
+        document.documentElement.classList.remove('pre-auth');
         document.body.classList.toggle('is-admin', !!Auth.isAdmin?.());
         try {
             await Storage.refresh();
@@ -44,23 +44,8 @@ const Boot = (() => {
 })();
 
 ['gesturestart', 'gesturechange', 'gestureend'].forEach(ev => {
-    document.addEventListener(ev, (e) => e.preventDefault(), { passive: false });
+    document.addEventListener(ev, (e) => e.preventDefault(), { passive: true });
 });
-let __lastTouchEnd = 0;
-const __FORM_TAGS = 'input, textarea, select, button, a, label, [contenteditable]';
-document.addEventListener('touchend', (e) => {
-    const now = Date.now();
-    
-    
-    
-    if (now - __lastTouchEnd <= 350) {
-        const t = e.target;
-        if (!(t && t.closest && t.closest(__FORM_TAGS))) {
-            e.preventDefault();
-        }
-    }
-    __lastTouchEnd = now;
-}, { passive: false });
 
 document.addEventListener('touchmove', (e) => {
     if (e.touches.length > 1) e.preventDefault();

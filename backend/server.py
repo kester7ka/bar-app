@@ -550,13 +550,43 @@ def _hzn_extract_info(data):
 @app.get("/api/honest-mark/health")
 @require_auth
 def hzn_health():
+    import json as _json
     import time as _time
+    import urllib.error as _urlerr
+    import urllib.request as _urlreq
     start = _time.monotonic()
     try:
-        _hzn_request("test", timeout=5)
-        return jsonify({"ok": True, "ms": int((_time.monotonic() - start) * 1000)})
+        req = _urlreq.Request(
+            HONEST_MARK_URL,
+            data=_json.dumps({"code": "00000000000000"}).encode("utf-8"),
+            headers={
+                "Content-Type": "application/json; charset=utf-8",
+                "Accept": "application/json",
+                "User-Agent": "BarManager/0.6 (consumer-check)",
+            },
+            method="POST",
+        )
+        with _urlreq.urlopen(req, timeout=6) as r:
+            r.read(512)
+        return jsonify({
+            "ok": True,
+            "ms": int((_time.monotonic() - start) * 1000),
+            "status": 200,
+        })
+    except _urlerr.HTTPError as e:
+        return jsonify({
+            "ok": True,
+            "ms": int((_time.monotonic() - start) * 1000),
+            "status": e.code,
+            "note": "сервер отвечает",
+        })
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)[:120], "ms": int((_time.monotonic() - start) * 1000)})
+        return jsonify({
+            "ok": False,
+            "ms": int((_time.monotonic() - start) * 1000),
+            "error": f"{type(e).__name__}: {str(e)[:120]}",
+            "url": HONEST_MARK_URL,
+        })
 
 
 @app.post("/api/honest-mark/info")

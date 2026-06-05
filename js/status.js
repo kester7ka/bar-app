@@ -106,7 +106,7 @@ const Status = (() => {
             text.textContent = 'работает';
         } else if (state === 'fail') {
             text.className = 'svc-state fail';
-            text.textContent = 'не отвечает';
+            text.textContent = name === 'hzn' ? 'недоступен' : 'не отвечает';
         } else {
             text.className = 'svc-state';
             text.textContent = 'проверяем…';

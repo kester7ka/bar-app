@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="color-scheme" content="light dark">
@@ -36,6 +36,15 @@
                 document.documentElement.style.background = '#fafafa';
                 document.documentElement.style.colorScheme = 'light';
             }
+            try {
+                if (!localStorage.getItem('bar-app:token')) {
+                    document.documentElement.classList.add('pre-auth');
+                    document.addEventListener('DOMContentLoaded', function () {
+                        var o = document.getElementById('auth-overlay');
+                        if (o) o.classList.add('show');
+                    });
+                }
+            } catch (e) {}
         })();
     </script>
 
@@ -122,14 +131,11 @@
                 
                 <div class="news-card" id="news-card">
                     <div class="news-head">
-                        <span class="news-version">0.6.1</span>
+                        <span class="news-version">0.6.2</span>
                         <h3 class="news-title">Что нового</h3>
                     </div>
                     <ul class="news-list">
-                        <li><b>Новый сканер</b> — рамка-цель сама «прилипает» к найденному коду, тап по экрану наводит фокус, большая круглая кнопка снизу делает снимок и ищет код на фото если в реальном времени поймать не получилось.</li>
-                        <li><b>Честный Знак — автозаполнение</b> — при сканировании кода приложение тянет с сервиса название товара, дату производства и срок годности. Поля сразу заполняются.</li>
-                        <li>В Позициях товары с привязанным кодом помечены значком <b>ЧЗ</b>.</li>
-                        <li>В Инструментах → Статус сервисов теперь видна связь с Честным Знаком — отдельной строкой рядом с сервером, БД и API.</li>
+                        <li>Просто исправлены баги: клавиатура больше не закрывается на Андроиде в Яндекс.Браузере, сканер работает на iPhone, снимок ловит код стабильнее, при первом запуске не мелькает главный экран до окна регистрации, Честный Знак тянет даты прямо из самого DataMatrix-кода (AI 11 и AI 17).</li>
                     </ul>
                 </div>
             </div>
@@ -625,7 +631,7 @@
                         <div class="about-logo">B</div>
                         <div>
                             <div class="about-title">Bar Manager</div>
-                            <div class="about-version">версия 0.6.1</div>
+                            <div class="about-version">версия 0.6.2</div>
                         </div>
                     </div>
 
@@ -853,7 +859,8 @@
                 </div>
 
                 <p class="status-hint">
-                    Чтобы не нагружать сервер, ручная проверка доступна не чаще раза в минуту. Автоматическая проверка происходит при открытии этой страницы.
+                    Чтобы не нагружать сервер, ручная проверка доступна не чаще раза в минуту. Автоматическая проверка происходит при открытии этой страницы.<br><br>
+                    <b>Честный Знак</b> — экспериментальная проверка через публичный API. Часто отвечает «недоступен», потому что официальный сервис требует токенов от приложения «Честный Знак». Это <b>не мешает</b> сканированию: даты производства и срок годности приложение тянет прямо из самого DataMatrix-кода (AI 11 и AI 17). Только название товара без API не подтянется.
                 </p>
             </div>
         </div>

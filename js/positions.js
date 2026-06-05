@@ -305,13 +305,25 @@ const Positions = (() => {
         });
     }
 
-    function parseHonestMarkExpiry(code) {
-        const m = String(code).match(/17(\d{2})(\d{2})(\d{2})/);
-        if (!m) return null;
-        const yy = Number(m[1]), mm = Number(m[2]), dd = Number(m[3]);
-        if (mm < 1 || mm > 12 || dd < 1 || dd > 31) return null;
-        const d = new Date(2000 + yy, mm - 1, dd, 12, 0);
-        return isNaN(d.getTime()) ? null : d;
+    function parseHonestMarkInfo(code) {
+        const c = String(code || '');
+        const info = { gtin: null, production_date: null, expiry_date: null };
+        const gtin = c.match(/^01(\d{14})/);
+        if (gtin) info.gtin = gtin[1];
+        const grabDate = (ai) => {
+            const re = new RegExp('(?:^|\\x1d|[^0-9])' + ai + '(\\d{6})');
+            const m = c.match(re);
+            if (!m) return null;
+            const yy = +m[1].slice(0, 2);
+            const mm = +m[1].slice(2, 4);
+            const dd = +m[1].slice(4, 6);
+            if (mm < 1 || mm > 12 || dd < 1 || dd > 31) return null;
+            const pad = (n) => String(n).padStart(2, '0');
+            return `${2000 + yy}-${pad(mm)}-${pad(dd)}`;
+        };
+        info.production_date = grabDate('11');
+        info.expiry_date = grabDate('17');
+        return info;
     }
 
     function showHonestMark(code) {
@@ -326,54 +338,64 @@ const Positions = (() => {
 
     function applyHonestMarkToForm(code) {
         showHonestMark(code);
-        const expiry = parseHonestMarkExpiry(code);
-        if (!expiry) return;
+        const info = parseHonestMarkInfo(code);
         const pd = document.getElementById('production-date');
         const pt = document.getElementById('production-time');
         const cd = document.getElementById('closed-shelf-days');
-        if (pd && pt && cd) {
-            const today = new Date(); today.setHours(12, 0, 0, 0);
-            const diffDays = Math.max(1, Math.round((expiry - today) / 86400000));
-            const pad = (n) => String(n).padStart(2, '0');
-            pd.value = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
-            pt.value = '12:00';
-            cd.value = diffDays;
-            if (typeof updateExpiryPreview === 'function') updateExpiryPreview();
+        if (!pd || !pt || !cd) return info;
+
+        if (info.production_date) {
+            pd.value = info.production_date;
+            if (!pt.value) pt.value = '12:00';
         }
+        if (info.expiry_date) {
+            const baseStr = pd.value || info.production_date;
+            if (baseStr) {
+                const base = new Date(baseStr);
+                const exp = new Date(info.expiry_date);
+                if (!isNaN(base.getTime()) && !isNaN(exp.getTime())) {
+                    const days = Math.max(1, Math.round((exp - base) / 86400000));
+                    cd.value = days;
+                }
+            } else {
+                const today = new Date();
+                today.setHours(12, 0, 0, 0);
+                const exp = new Date(info.expiry_date);
+                if (!isNaN(exp.getTime())) {
+                    const pad = (n) => String(n).padStart(2, '0');
+                    pd.value = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+                    pt.value = '12:00';
+                    cd.value = Math.max(1, Math.round((exp - today) / 86400000));
+                }
+            }
+        }
+        if (typeof updateExpiryPreview === 'function') updateExpiryPreview();
+        return info;
     }
 
     function startHonestMarkScan(opts = {}) {
         Scanner.open(async (code) => {
             if (!code) return;
             if (!opts.skipOpenModal) openModal();
-            applyHonestMarkToForm(code);
             setCategory('cookies');
-            Utils.toast('Честный Знак привязан, тяну инфу…');
+            const local = applyHonestMarkToForm(code);
+
+            const parts = ['Код привязан'];
+            if (local.production_date) parts.push('произведено ' + local.production_date);
+            if (local.expiry_date) parts.push('до ' + local.expiry_date);
+            if (!local.production_date && !local.expiry_date) {
+                parts.push('даты в коде нет — введи вручную');
+            }
+            Utils.toast(parts.join(' · '));
+
             try {
                 const r = await Api.post('/api/honest-mark/info', { code });
-                if (r && r.ok && r.info) {
+                if (r && r.ok && r.info && r.info.name) {
                     const form = document.getElementById('position-form');
-                    if (r.info.name && !form.name.value.trim()) form.name.value = r.info.name;
-                    const pd = document.getElementById('production-date');
-                    const pt = document.getElementById('production-time');
-                    const cd = document.getElementById('closed-shelf-days');
-                    if (r.info.production_date && pd) {
-                        const pdStr = String(r.info.production_date).slice(0, 10);
-                        if (pdStr.length === 10) {
-                            pd.value = pdStr;
-                            if (pt && !pt.value) pt.value = '12:00';
-                        }
+                    if (!form.name.value.trim()) {
+                        form.name.value = r.info.name;
+                        Utils.toast('Название подтянуто из Честного Знака');
                     }
-                    if (r.info.expiry_date && pd && cd) {
-                        const exp = new Date(String(r.info.expiry_date).slice(0, 10));
-                        const base = new Date(pd.value || Utils.today());
-                        if (!isNaN(exp.getTime()) && !isNaN(base.getTime())) {
-                            const days = Math.max(1, Math.round((exp - base) / 86400000));
-                            cd.value = days;
-                        }
-                    }
-                    if (typeof updateExpiryPreview === 'function') updateExpiryPreview();
-                    Utils.toast('Данные из Честного Знака подтянуты');
                 }
             } catch {}
         });
