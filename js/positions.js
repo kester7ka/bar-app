@@ -871,14 +871,6 @@ const Positions = (() => {
         document.getElementById('btn-clear-hmark')?.addEventListener('click', () => showHonestMark(''));
         document.getElementById('position-form').addEventListener('submit', handleSubmit);
 
-        const tobInput = document.getElementById('tob-input');
-        if (tobInput) {
-            tobInput.addEventListener('input', () => {
-                const raw = (tobInput.value || '').replace(/\D/g, '');
-                tobInput.value = raw;
-                tryKbAutofill(raw);
-            });
-        }
 
         document.querySelectorAll('[data-close]').forEach(el => {
             el.addEventListener('click', () => {
@@ -970,23 +962,24 @@ const Positions = (() => {
         
         
         const tobInput = document.getElementById('tob-input');
-        tobInput.addEventListener('input', (e) => {
-            e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6);
-            if (e.target.value.length !== 6 || editingId) return;
-            const existing = Storage.getByTob(e.target.value);
-            if (!existing) return;
-            const form = document.getElementById('position-form');
-            
-            
-            if (!form.name.value.trim()) {
-                form.name.value = existing.name;
-                if (existing.shelf_open_days) {
-                    form.shelf_open_days.value = existing.shelf_open_days;
+        if (tobInput) {
+            tobInput.addEventListener('input', (e) => {
+                const raw = e.target.value.replace(/\D/g, '').slice(0, 7);
+                e.target.value = raw;
+                if (raw.length < 6 || editingId) {
+                    tryKbAutofill(raw);
+                    return;
                 }
-                setCategory(existing.category);
-                Utils.toast(`Подтянуто: ${existing.name}`);
-            }
-        });
+                const form = document.getElementById('position-form');
+                const existing = Storage.getByTob(raw);
+                if (existing && !form.name.value.trim()) {
+                    form.name.value = existing.name;
+                    setCategory(existing.category);
+                    Utils.toast(`Подтянуто: ${existing.name}`);
+                }
+                tryKbAutofill(raw);
+            });
+        }
     };
 
     return { init, render, openDetails, openModal, cardHtml, startHonestMarkPolling };
