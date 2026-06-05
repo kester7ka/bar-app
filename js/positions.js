@@ -4,44 +4,52 @@ const Positions = (() => {
     let editingId = null;
 
     const render = () => {
-        const list = Storage.list();
-
-        
-        
-        
-        const tobDup = {};
-        const openByName = {};
-        for (const p of list) {
-            if (p.category !== 'syrups') continue;
-            tobDup[p.tob] = (tobDup[p.tob] || 0) + 1;
-            if (p.is_open) {
-                const k = p.name.trim().toLowerCase();
-                openByName[k] = (openByName[k] || 0) + 1;
-            }
-        }
-
-        const filtered = list
-            .filter(p => activeCategory === 'all' || p.category === activeCategory)
-            .filter(p => {
-                if (!searchQuery) return true;
-                const q = searchQuery.toLowerCase();
-                return p.name.toLowerCase().includes(q) || p.tob.toLowerCase().includes(q);
-            })
-            .sort((a, b) => {
-                const ea = Utils.effectiveExpiry(a);
-                const eb = Utils.effectiveExpiry(b);
-                return ea.localeCompare(eb);
-            });
-
         const c = document.getElementById('positions-list');
-        if (filtered.length === 0) {
-            c.innerHTML = `<p class="empty-text">${list.length === 0 ? 'Нет позиций. Добавь первую с помощью + сверху.' : 'Ничего не найдено'}</p>`;
-            return;
+        if (!c) return;
+        try {
+            const list = Storage.list();
+
+            const tobDup = {};
+            const openByName = {};
+            for (const p of list) {
+                if (!p || p.category !== 'syrups') continue;
+                if (p.tob) tobDup[p.tob] = (tobDup[p.tob] || 0) + 1;
+                if (p.is_open && p.name) {
+                    const k = String(p.name).trim().toLowerCase();
+                    openByName[k] = (openByName[k] || 0) + 1;
+                }
+            }
+
+            const filtered = list
+                .filter(p => p && (activeCategory === 'all' || p.category === activeCategory))
+                .filter(p => {
+                    if (!searchQuery) return true;
+                    const q = searchQuery.toLowerCase();
+                    const name = String(p.name || '').toLowerCase();
+                    const tob = String(p.tob || '').toLowerCase();
+                    return name.includes(q) || tob.includes(q);
+                })
+                .sort((a, b) => {
+                    const ea = String(Utils.effectiveExpiry(a) || '');
+                    const eb = String(Utils.effectiveExpiry(b) || '');
+                    return ea.localeCompare(eb);
+                });
+
+            if (filtered.length === 0) {
+                c.innerHTML = `<p class="empty-text">${list.length === 0 ? 'Нет позиций. Добавь первую с помощью + сверху.' : 'Ничего не найдено'}</p>`;
+                return;
+            }
+            c.innerHTML = filtered.map(p => {
+                try { return cardHtml(p, { syrupDups: tobDup, openByName }); }
+                catch (e) { console.error('cardHtml failed for', p, e); return ''; }
+            }).join('');
+            c.querySelectorAll('.position-card').forEach(card => {
+                card.addEventListener('click', () => openDetails(card.dataset.id));
+            });
+        } catch (e) {
+            console.error('Positions render failed', e);
+            c.innerHTML = `<p class="empty-text">Не удалось показать список. Проверь консоль.</p>`;
         }
-        c.innerHTML = filtered.map(p => cardHtml(p, { syrupDups: tobDup, openByName })).join('');
-        c.querySelectorAll('.position-card').forEach(card => {
-            card.addEventListener('click', () => openDetails(card.dataset.id));
-        });
     };
 
     
