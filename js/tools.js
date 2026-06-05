@@ -7,6 +7,8 @@ const Tools = (() => {
                 return Calendar.open();
             case 'status':
                 return Status.open();
+            case 'kb':
+                return KB.open();
             case 'admin':
                 return Admin.open();
             case 'scan':

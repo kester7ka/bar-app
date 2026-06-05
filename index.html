@@ -59,6 +59,7 @@
     <link rel="stylesheet" href="css/calendar.css">
     <link rel="stylesheet" href="css/status.css">
     <link rel="stylesheet" href="css/news.css">
+    <link rel="stylesheet" href="css/kb.css">
     <link rel="stylesheet" href="css/scanner.css">
     <link rel="stylesheet" href="css/admin.css">
     <link rel="stylesheet" href="css/auth.css">
@@ -131,11 +132,12 @@
                 
                 <div class="news-card" id="news-card">
                     <div class="news-head">
-                        <span class="news-version">0.6.2</span>
+                        <span class="news-version">0.6.3</span>
                         <h3 class="news-title">Что нового</h3>
                     </div>
                     <ul class="news-list">
-                        <li>Просто исправлены баги: клавиатура больше не закрывается на Андроиде в Яндекс.Браузере, сканер работает на iPhone, снимок ловит код стабильнее, при первом запуске не мелькает главный экран до окна регистрации, Честный Знак тянет даты прямо из самого DataMatrix-кода (AI 11 и AI 17).</li>
+                        <li><b>База знаний</b> в Инструментах: все ТОВ-номера расходников (стаканы, крышки, сахар, салфетки, баллончики и пр.) и сроки годности по категориям (кофе, молочка, сиропы, фрукты, алкоголь и пр.). Поиск по коду и названию, тап на ТОВ — копирует в буфер.</li>
+                        <li>Сканер: если камера была заблокирована в браузере, теперь показывает конкретную причину и говорит куда нажать чтобы разрешить.</li>
                     </ul>
                 </div>
             </div>
@@ -200,6 +202,10 @@
                     <button class="tool-tile wide" data-tool="calendar">
                         <span class="tool-icon">◷</span>
                         <span class="tool-name">Календарь сроков</span>
+                    </button>
+                    <button class="tool-tile wide" data-tool="kb">
+                        <span class="tool-icon">❡</span>
+                        <span class="tool-name">База знаний</span>
                     </button>
                     <button class="tool-tile wide" data-tool="status">
                         <span class="tool-icon">◉</span>
@@ -631,7 +637,7 @@
                         <div class="about-logo">B</div>
                         <div>
                             <div class="about-title">Bar Manager</div>
-                            <div class="about-version">версия 0.6.2</div>
+                            <div class="about-version">версия 0.6.3</div>
                         </div>
                     </div>
 
@@ -865,7 +871,39 @@
             </div>
         </div>
 
-        
+
+        <div class="overlay kb-overlay" id="kb-overlay">
+            <header class="overlay-head">
+                <button class="btn-icon" id="kb-close" aria-label="Назад">
+                    <svg viewBox="0 0 24 24" width="20" height="20"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+                </button>
+                <div class="overlay-title">
+                    <h2>База знаний</h2>
+                    <span class="muted">сроки и ТОВ</span>
+                </div>
+                <button class="btn-icon" id="kb-expand-all" aria-label="Развернуть всё">
+                    <svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 6h16M4 12h10M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+                </button>
+            </header>
+            <div class="overlay-body kb-body">
+                <div class="kb-tabs">
+                    <button class="kb-tab active" data-tab="shelf">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                        <span>Сроки годности</span>
+                    </button>
+                    <button class="kb-tab" data-tab="tov">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l9-5 9 5v8l-9 5-9-5V8z"/><path d="M3 8l9 5 9-5M12 13v9"/></svg>
+                        <span>ТОВ расходников</span>
+                    </button>
+                </div>
+                <div class="kb-search-wrap">
+                    <svg class="kb-search-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+                    <input id="kb-search" type="search" placeholder="ТОВ, название, срок…" autocomplete="off" autocapitalize="none" spellcheck="false">
+                </div>
+                <div id="kb-content" class="kb-content"></div>
+            </div>
+        </div>
+
         <div class="overlay calendar-overlay" id="calendar-overlay">
             <header class="overlay-head">
                 <button class="btn-icon" id="calendar-close" aria-label="Назад">
@@ -981,6 +1019,8 @@
     <script src="js/scanner.js"></script>
     <script src="js/admin.js"></script>
     <script src="js/news.js"></script>
+    <script src="js/kb_data.js"></script>
+    <script src="js/kb.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

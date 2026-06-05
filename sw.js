@@ -1,4 +1,4 @@
-const CACHE = 'bar-app-v4';
+const CACHE = 'bar-app-v5';
 const ASSETS = [
   './',
   './index.html',
@@ -17,6 +17,7 @@ const ASSETS = [
   './css/admin.css',
   './css/news.css',
   './css/auth.css',
+  './css/kb.css',
   './js/api.js',
   './js/auth.js',
   './js/storage.js',
@@ -34,6 +35,8 @@ const ASSETS = [
   './js/scanner.js',
   './js/admin.js',
   './js/news.js',
+  './js/kb_data.js',
+  './js/kb.js',
   './js/app.js',
   './icons/icon-192.svg',
   './icons/icon-512.svg'

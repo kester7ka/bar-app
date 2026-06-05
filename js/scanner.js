@@ -105,11 +105,34 @@ const Scanner = (() => {
         return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
     }
 
+    async function checkCameraPermission() {
+        if (!window.isSecureContext) {
+            return { ok: false, reason: 'Нужен HTTPS. Открой приложение через https:// (на github.io уже так).' };
+        }
+        if (!navigator.mediaDevices?.getUserMedia) {
+            return { ok: false, reason: 'Браузер не умеет в камеру через сайт. Попробуй Chrome или Firefox.' };
+        }
+        try {
+            if (navigator.permissions?.query) {
+                const st = await navigator.permissions.query({ name: 'camera' });
+                if (st.state === 'denied') {
+                    return { ok: false, reason: 'Камера заблокирована. Открой ⓘ слева от адресной строки → «Разрешения» → «Камера» → «Разрешить», потом перезагрузи страницу.' };
+                }
+            }
+        } catch {}
+        return { ok: true };
+    }
+
     async function open(callback) {
         onDetect = callback;
         lastValue = null;
         stableHits = 0;
         lastDetectAt = 0;
+        const perm = await checkCameraPermission();
+        if (!perm.ok) {
+            Utils.toast(perm.reason);
+            return;
+        }
         el('scanner-overlay').classList.add('show');
         await new Promise(r => requestAnimationFrame(r));
         const hasNative = 'BarcodeDetector' in window;
@@ -118,6 +141,18 @@ const Scanner = (() => {
         } else {
             await openFallback();
         }
+    }
+
+    function cameraErrorText(e) {
+        const n = e?.name || '';
+        if (n === 'NotAllowedError' || n === 'SecurityError') {
+            return 'Доступ к камере не дан. Тапни ⓘ слева от адресной строки → Разрешения → Камера → Разрешить.';
+        }
+        if (n === 'NotFoundError' || n === 'DevicesNotFoundError') return 'Камера не найдена на устройстве.';
+        if (n === 'NotReadableError' || n === 'TrackStartError') return 'Камера занята другим приложением. Закрой его и попробуй снова.';
+        if (n === 'OverconstrainedError') return 'Камера не поддерживает нужный режим. Попробуй на другом устройстве.';
+        if (n === 'AbortError') return 'Запуск камеры прерван. Попробуй ещё раз.';
+        return 'Не удалось включить камеру: ' + (e?.message || n || 'неизвестная ошибка');
     }
 
     async function openNative() {
@@ -134,7 +169,7 @@ const Scanner = (() => {
             video.srcObject = stream;
             await video.play();
         } catch (e) {
-            Utils.toast('Не удалось включить камеру. Дай доступ в настройках.');
+            Utils.toast(cameraErrorText(e));
             await close();
             return;
         }
@@ -178,7 +213,7 @@ const Scanner = (() => {
                 video.style.objectFit = 'cover';
             }
         } catch (e) {
-            Utils.toast('Не удалось включить камеру. Дай доступ.');
+            Utils.toast(cameraErrorText(e));
             await close();
         }
     }

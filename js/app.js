@@ -15,6 +15,7 @@ const Boot = (() => {
         QR.init();
         Scanner.init();
         Admin.init();
+        KB.init();
 
         const ok = await Auth.bootstrap();
         if (ok) {
