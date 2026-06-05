@@ -1,21 +1,25 @@
 const Boot = (() => {
+    function safeInit(name, fn) {
+        try { fn(); }
+        catch (e) { console.error('init failed:', name, e); }
+    }
+
     async function start() {
-        
-        Profile.init();
-        Nav.init();
-        Auth.init();
-        Schedule.init();
-        Calendar.init();
-        Status.init();
-        Tools.init();
-        Positions.init();
-        Home.init();
-        Weather.init();
-        News.init();
-        QR.init();
-        Scanner.init();
-        Admin.init();
-        KB.init();
+        safeInit('Profile',  () => Profile.init());
+        safeInit('Nav',      () => Nav.init());
+        safeInit('Auth',     () => Auth.init());
+        safeInit('Schedule', () => Schedule.init());
+        safeInit('Calendar', () => Calendar.init());
+        safeInit('Status',   () => Status.init());
+        safeInit('Tools',    () => Tools.init());
+        safeInit('Positions',() => Positions.init());
+        safeInit('Home',     () => Home.init());
+        safeInit('Weather',  () => Weather.init());
+        safeInit('News',     () => News.init());
+        safeInit('QR',       () => QR.init());
+        safeInit('Scanner',  () => Scanner.init());
+        safeInit('Admin',    () => Admin.init());
+        safeInit('KB',       () => KB.init());
 
         const ok = await Auth.bootstrap();
         if (ok) {

@@ -235,44 +235,6 @@ const Positions = (() => {
     }
 
     
-    const openModal = (position = null) => {
-        editingId = position ? position.id : null;
-        const modal = document.getElementById('position-modal');
-        const form = document.getElementById('position-form');
-        form.reset();
-        resetSteps();
-        pendingBarcode = null;
-        showHonestMark(position?.honest_mark || '');
-        document.getElementById('modal-title').textContent = position ? 'Редактировать позицию' : 'Новая позиция';
-
-        kbStashedDays = null;
-        const hint = document.getElementById('tob-kb-hint');
-        if (hint) { hint.textContent = ''; hint.classList.remove('hit'); }
-
-        if (position) {
-            form.name.value = position.name;
-            form.tob.value = position.tob;
-
-            form.is_open.checked = position.is_open;
-            applyExpiryFields(position);
-            setCategory(position.category);
-            tryKbAutofill(position.tob, { silent: true });
-        } else {
-            form.tob.value = '';
-
-            setProduction(`${Utils.today()}T12:00`);
-            document.getElementById('closed-shelf-days').value = 30;
-            updateExpiryPreview();
-            setCategory('ingredients');
-        }
-
-        modal.classList.add('show');
-    };
-
-    const closeModal = (id) => {
-        document.getElementById(id).classList.remove('show');
-    };
-
     let pendingDraft = null;
     let kbStashedDays = null;
 
@@ -318,7 +280,8 @@ const Positions = (() => {
             kbStashedDays = null;
             return;
         }
-        const hit = findInKB(digits);
+        let hit = null;
+        try { hit = findInKB(digits); } catch (e) { console.error('KB lookup failed', e); }
         if (!hit) {
             hint.textContent = 'в базе знаний не найдено';
             hint.classList.remove('hit');
@@ -336,6 +299,44 @@ const Positions = (() => {
         hint.textContent = bits.join(' · ');
         if (!opts.silent && !opts.quiet) Utils.toast('Подтянуто из базы знаний');
     }
+
+    const openModal = (position = null) => {
+        editingId = position ? position.id : null;
+        const modal = document.getElementById('position-modal');
+        const form = document.getElementById('position-form');
+        form.reset();
+        resetSteps();
+        pendingBarcode = null;
+        showHonestMark(position?.honest_mark || '');
+        document.getElementById('modal-title').textContent = position ? 'Редактировать позицию' : 'Новая позиция';
+
+        kbStashedDays = null;
+        const hint = document.getElementById('tob-kb-hint');
+        if (hint) { hint.textContent = ''; hint.classList.remove('hit'); }
+
+        if (position) {
+            form.name.value = position.name;
+            form.tob.value = position.tob;
+
+            form.is_open.checked = position.is_open;
+            applyExpiryFields(position);
+            setCategory(position.category);
+            tryKbAutofill(position.tob, { silent: true });
+        } else {
+            form.tob.value = '';
+
+            setProduction(`${Utils.today()}T12:00`);
+            document.getElementById('closed-shelf-days').value = 30;
+            updateExpiryPreview();
+            setCategory('ingredients');
+        }
+
+        modal.classList.add('show');
+    };
+
+    const closeModal = (id) => {
+        document.getElementById(id).classList.remove('show');
+    };
 
     
     const BARCODES_KEY = 'bar-app:barcodes';
