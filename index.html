@@ -14,8 +14,16 @@
     <title>Bar Manager</title>
     <script>
         if ('serviceWorker' in navigator) {
+            var __swReloaded = false;
+            navigator.serviceWorker.addEventListener('controllerchange', function () {
+                if (__swReloaded) return;
+                __swReloaded = true;
+                window.location.reload();
+            });
             window.addEventListener('load', function () {
-                navigator.serviceWorker.register('sw.js').catch(function () {});
+                navigator.serviceWorker.register('sw.js').then(function (reg) {
+                    if (reg && reg.update) reg.update();
+                }).catch(function () {});
             });
         }
     </script>

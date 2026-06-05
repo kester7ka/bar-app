@@ -1,43 +1,8 @@
-const CACHE = 'bar-app-v10';
+const CACHE = 'bar-app-v11';
 const ASSETS = [
   './',
   './index.html',
   './manifest.webmanifest',
-  './css/base.css',
-  './css/nav.css',
-  './css/home.css',
-  './css/positions.css',
-  './css/tools.css',
-  './css/profile.css',
-  './css/modal.css',
-  './css/schedule.css',
-  './css/calendar.css',
-  './css/status.css',
-  './css/scanner.css',
-  './css/admin.css',
-  './css/news.css',
-  './css/auth.css',
-  './css/kb.css',
-  './js/api.js',
-  './js/auth.js',
-  './js/storage.js',
-  './js/utils.js',
-  './js/nav.js',
-  './js/home.js',
-  './js/positions.js',
-  './js/tools.js',
-  './js/profile.js',
-  './js/schedule.js',
-  './js/calendar.js',
-  './js/status.js',
-  './js/weather.js',
-  './js/qr.js',
-  './js/scanner.js',
-  './js/admin.js',
-  './js/news.js',
-  './js/kb_data.js',
-  './js/kb.js',
-  './js/app.js',
   './icons/icon-192.svg',
   './icons/icon-512.svg'
 ];
@@ -55,7 +20,23 @@ self.addEventListener('activate', (e) => {
   );
 });
 
+self.addEventListener('message', (e) => {
+  if (e.data === 'skipWaiting') self.skipWaiting();
+  if (e.data === 'clearCache') {
+    e.waitUntil(caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k)))));
+  }
+});
+
+function isVersionedAsset(url) {
+  return url.pathname.endsWith('.js') ||
+         url.pathname.endsWith('.css') ||
+         url.pathname.endsWith('.html') ||
+         url.pathname === '/' ||
+         url.pathname.endsWith('/');
+}
+
 self.addEventListener('fetch', (e) => {
+  if (e.request.method !== 'GET') return;
   const url = new URL(e.request.url);
   const passthrough =
     url.pathname.startsWith('/api/') ||
@@ -65,9 +46,23 @@ self.addEventListener('fetch', (e) => {
     url.hostname.includes('disk.yandex') ||
     url.hostname.includes('cloud-api.yandex');
   if (passthrough) return;
+
+  if (isVersionedAsset(url)) {
+    e.respondWith(
+      fetch(e.request).then((resp) => {
+        if (resp && resp.ok && url.origin === self.location.origin) {
+          const clone = resp.clone();
+          caches.open(CACHE).then((c) => c.put(e.request, clone));
+        }
+        return resp;
+      }).catch(() => caches.match(e.request).then((r) => r || caches.match('./index.html')))
+    );
+    return;
+  }
+
   e.respondWith(
     caches.match(e.request).then((r) => r || fetch(e.request).then((resp) => {
-      if (e.request.method === 'GET' && resp.ok && url.origin === self.location.origin) {
+      if (resp && resp.ok && url.origin === self.location.origin) {
         const clone = resp.clone();
         caches.open(CACHE).then((c) => c.put(e.request, clone));
       }
