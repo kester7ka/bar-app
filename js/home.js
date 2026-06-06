@@ -51,9 +51,7 @@ const Home = (() => {
             c.innerHTML = `
                 <div class="section-empty">
                     <div class="section-empty-icon">
-                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M5 12.5l4.2 4.2L19 7"/>
-                        </svg>
+                        <i class="ph ph-check" style="font-size:18px"></i>
                     </div>
                     <div class="section-empty-info">
                         <div class="section-empty-text">${Utils.escape(emptyText)}</div>

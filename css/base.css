@@ -131,6 +131,13 @@ h2 {
     display: none !important;
 }
 
+.ph {
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
 html.pre-auth .screen.active,
 html.pre-auth .bottom-nav {
     visibility: hidden;

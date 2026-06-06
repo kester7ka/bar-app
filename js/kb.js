@@ -147,21 +147,13 @@ const KB = (() => {
     }
 
     function lifeIcon() {
-        return `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="9"/>
-            <path d="M12 7v5l3 2"/>
-        </svg>`;
+        return `<i class="ph ph-clock" style="font-size:14px"></i>`;
     }
     function copyIcon() {
-        return `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="9" y="9" width="11" height="11" rx="2"/>
-            <path d="M5 15V5a2 2 0 012-2h10"/>
-        </svg>`;
+        return `<i class="ph ph-copy" style="font-size:14px"></i>`;
     }
     function chevronIcon() {
-        return `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M6 9l6 6 6-6"/>
-        </svg>`;
+        return `<i class="ph ph-caret-down" style="font-size:16px"></i>`;
     }
 
     function render() {
