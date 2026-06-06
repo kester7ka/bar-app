@@ -53,7 +53,9 @@ const Schedule = (() => {
     
     async function fetchWorkbook() {
         const url = `${Api.BASE}/api/schedule/xlsx`;
-        const fileResp = await fetch(url);
+        const token = Api.getToken ? Api.getToken() : null;
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        const fileResp = await fetch(url, { headers });
         if (!fileResp.ok) throw new Error('Сервер не отдал таблицу (бэкенд лежит?)');
         const buf = await fileResp.arrayBuffer();
         if (typeof XLSX === 'undefined') throw new Error('Библиотека таблиц ещё грузится — попробуй ещё раз');

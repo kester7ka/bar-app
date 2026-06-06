@@ -45,7 +45,6 @@ const Scanner = (() => {
             <span class="scn-corner tr"></span>
             <span class="scn-corner bl"></span>
             <span class="scn-corner br"></span>
-            <span class="scn-laser"></span>
         `;
         viewport.appendChild(target);
 

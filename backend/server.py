@@ -779,13 +779,16 @@ def honest_mark_check():
     return jsonify({"checked": len(rows), "removed": len(sold_ids), "ids": sold_ids})
 
 @app.get("/api/schedule/xlsx")
+@require_auth
 def schedule_xlsx():
     import json as _json
     import urllib.parse
     import urllib.request
     from flask import Response
 
-    public_key = "https://disk.360.yandex.ru/d/YPIq80g1M7G1SA"
+    public_key = os.environ.get("SCHEDULE_PUBLIC_KEY", "").strip()
+    if not public_key:
+        return _err("График не настроен", HTTPStatus.SERVICE_UNAVAILABLE)
     meta_url = (
         "https://cloud-api.yandex.net/v1/disk/public/resources/download"
         "?public_key=" + urllib.parse.quote(public_key)

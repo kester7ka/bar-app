@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import sys
 import urllib.parse
@@ -9,7 +10,7 @@ from typing import Optional
 
 from db import connect, init_db
 
-PUBLIC_KEY = "https://disk.360.yandex.ru/d/YPIq80g1M7G1SA"
+PUBLIC_KEY = os.environ.get("SCHEDULE_PUBLIC_KEY", "").strip()
 API = "https://cloud-api.yandex.net/v1/disk/public/resources"
 
 FALLBACK = [
@@ -28,6 +29,8 @@ FALLBACK = [
 ]
 
 def fetch_bars_from_disk() -> Optional[list[dict]]:
+    if not PUBLIC_KEY:
+        return None
     try:
         import openpyxl
     except ImportError:

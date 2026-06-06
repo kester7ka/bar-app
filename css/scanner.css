@@ -60,12 +60,12 @@
     border-radius: 18px;
     pointer-events: none;
     box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.55);
-    transition: left 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-                top 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-                width 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-                height 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-                box-shadow 0.2s ease;
-    animation: scn-breath 2.4s ease-in-out infinite;
+    transition: left 0.38s cubic-bezier(0.22, 1, 0.36, 1),
+                top 0.38s cubic-bezier(0.22, 1, 0.36, 1),
+                width 0.38s cubic-bezier(0.22, 1, 0.36, 1),
+                height 0.38s cubic-bezier(0.22, 1, 0.36, 1),
+                box-shadow 0.38s ease;
+    animation: scn-breath 3.6s ease-in-out infinite;
 }
 
 .scanner-target.locked {
@@ -83,7 +83,7 @@
     width: 28px;
     height: 28px;
     border: 3px solid #fff;
-    transition: border-color 0.2s ease, width 0.2s ease, height 0.2s ease;
+    transition: border-color 0.38s ease, width 0.38s ease, height 0.38s ease;
 }
 
 .scanner-target.locked .scn-corner {
@@ -115,29 +115,7 @@
 
 @keyframes scn-breath {
     0%, 100% { width: min(70vw, 65vh, 320px); height: min(70vw, 65vh, 320px); }
-    50%      { width: min(65vw, 60vh, 300px); height: min(65vw, 60vh, 300px); }
-}
-
-.scn-laser {
-    position: absolute;
-    left: 8%;
-    right: 8%;
-    top: 0;
-    height: 2px;
-    border-radius: 2px;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.95), transparent);
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
-    animation: scn-scan 2s ease-in-out infinite;
-}
-
-.scanner-target.locked .scn-laser {
-    display: none;
-}
-
-@keyframes scn-scan {
-    0%   { top: 6%;  opacity: 0.2; }
-    50%  { top: 94%; opacity: 1; }
-    100% { top: 6%;  opacity: 0.2; }
+    50%      { width: min(67vw, 62vh, 310px); height: min(67vw, 62vh, 310px); }
 }
 
 .scanner-focus-ripple {
