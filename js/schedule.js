@@ -666,8 +666,11 @@ const Schedule = (() => {
         document.getElementById('schedule-refresh').addEventListener('click', () => {
             const elapsed = Date.now() - lastRefresh;
             if (elapsed < MIN_REFRESH_INTERVAL) {
-                const wait = Math.ceil((MIN_REFRESH_INTERVAL - elapsed) / 1000);
-                Utils.toast(`Подожди ещё ${wait} сек до обновления`);
+                const readyAt = lastRefresh + MIN_REFRESH_INTERVAL;
+                Utils.toast(() => {
+                    const sec = Math.max(0, Math.ceil((readyAt - Date.now()) / 1000));
+                    return sec > 0 ? `Обновить можно через ${sec} сек` : 'Можно обновлять';
+                }, { ttl: 4000 });
                 return;
             }
             lastRefresh = Date.now();

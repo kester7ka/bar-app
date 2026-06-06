@@ -152,12 +152,6 @@ const KB = (() => {
             <path d="M12 7v5l3 2"/>
         </svg>`;
     }
-    function packIcon() {
-        return `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 8l9-5 9 5v8l-9 5-9-5V8z"/>
-            <path d="M3 8l9 5 9-5M12 13v9"/>
-        </svg>`;
-    }
     function copyIcon() {
         return `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="9" y="9" width="11" height="11" rx="2"/>

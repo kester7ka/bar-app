@@ -470,18 +470,13 @@ const Positions = (() => {
         setCategory('cookies');
         const local = applyHonestMarkToForm(code);
 
-        if (local.expiry_date) {
-            const exp = new Date(local.expiry_date + 'T23:59');
-            Utils.toast(
-                () => 'Код привязан · до ' + local.expiry_date + ' · ' + Utils.countdown(exp),
-                { ttl: 7000 }
-            );
-        } else {
-            const parts = ['Код привязан'];
-            if (local.production_date) parts.push('произведено ' + local.production_date);
-            if (!local.production_date) parts.push('даты в коде нет — введи вручную');
-            Utils.toast(parts.join(' · '));
+        const parts = ['Код привязан'];
+        if (local.production_date) parts.push('произведено ' + local.production_date);
+        if (local.expiry_date) parts.push('до ' + local.expiry_date);
+        if (!local.production_date && !local.expiry_date) {
+            parts.push('даты в коде нет — введи вручную');
         }
+        Utils.toast(parts.join(' · '));
 
         try {
             const r = await Api.post('/api/honest-mark/info', { code });

@@ -139,29 +139,12 @@ const Utils = (() => {
         }, ttl);
     };
 
-    const countdown = (target) => {
-        const end = (target instanceof Date) ? target.getTime() : new Date(target).getTime();
-        if (isNaN(end)) return '';
-        let s = Math.floor((end - Date.now()) / 1000);
-        const past = s < 0;
-        s = Math.abs(s);
-        const d = Math.floor(s / 86400); s -= d * 86400;
-        const h = Math.floor(s / 3600); s -= h * 3600;
-        const m = Math.floor(s / 60); s -= m * 60;
-        const parts = [];
-        if (d) parts.push(d + 'д');
-        if (h || d) parts.push(h + 'ч');
-        parts.push(m + 'м');
-        parts.push(String(s).padStart(2, '0') + 'с');
-        return (past ? 'просрочено на ' : 'осталось ') + parts.join(' ');
-    };
 
     const escape = (str) =>
         String(str ?? '').replace(/[&<>"']/g, ch => ({
             '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
         }[ch]));
 
-    // Склонение «день / дня / дней» по числу.
     const pluralDay = (n) => {
         const abs = Math.abs(n) % 100;
         const last = abs % 10;
@@ -171,7 +154,6 @@ const Utils = (() => {
         return 'дней';
     };
 
-    // Сколько дней назад открыли позицию.
     const openedAgo = (opened_at) => {
         if (!opened_at) return 'открыта';
         const days = Math.round(
@@ -201,7 +183,6 @@ const Utils = (() => {
         greeting,
         dateLine,
         toast,
-        countdown,
         escape,
         pluralDay,
         openedAgo
