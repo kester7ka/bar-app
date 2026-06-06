@@ -43,8 +43,7 @@
     user-select: none;
 }
 
-.scanner-viewport video,
-.scanner-viewport #scanner-h5q {
+.scanner-viewport video {
     width: 100% !important;
     height: 100% !important;
     object-fit: cover;
@@ -119,6 +118,28 @@
     50%      { width: min(65vw, 60vh, 300px); height: min(65vw, 60vh, 300px); }
 }
 
+.scn-laser {
+    position: absolute;
+    left: 8%;
+    right: 8%;
+    top: 0;
+    height: 2px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.95), transparent);
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+    animation: scn-scan 2s ease-in-out infinite;
+}
+
+.scanner-target.locked .scn-laser {
+    display: none;
+}
+
+@keyframes scn-scan {
+    0%   { top: 6%;  opacity: 0.2; }
+    50%  { top: 94%; opacity: 1; }
+    100% { top: 6%;  opacity: 0.2; }
+}
+
 .scanner-focus-ripple {
     position: absolute;
     width: 60px;
@@ -157,24 +178,38 @@
 .scanner-actions {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: space-around;
     gap: 16px;
-    padding: 8px 20px calc(20px + var(--safe-bottom));
+    padding: 14px 24px calc(22px + var(--safe-bottom));
     background: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
 }
 
-.scanner-cancel {
-    background: rgba(255, 255, 255, 0.14) !important;
-    color: #fff !important;
-    height: 48px;
-    padding: 0 22px;
+.scanner-tool {
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.14);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
     flex-shrink: 0;
+    transition: transform 0.12s ease, background 0.15s ease, color 0.15s ease, box-shadow 0.2s ease;
 }
 
-.scanner-cancel:active {
-    background: rgba(255, 255, 255, 0.25) !important;
+.scanner-tool:active {
+    transform: scale(0.9);
+    background: rgba(255, 255, 255, 0.26);
+}
+
+.scanner-tool.on {
+    background: #fde68a;
+    color: #1a1a1a;
+    box-shadow: 0 0 18px rgba(253, 230, 138, 0.7);
 }
 
 .scanner-snap {

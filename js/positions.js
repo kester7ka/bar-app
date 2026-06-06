@@ -362,20 +362,36 @@ const Positions = (() => {
         try { localStorage.setItem(BARCODES_KEY, JSON.stringify(all)); } catch {}
     }
 
-    function startBarcodeScan() {
+    function looksLikeHonestMark(code) {
+        const c = String(code || '');
+        if (/\x1d/.test(c)) return true;
+        if (/^01\d{14}/.test(c)) return true;
+        if (c.length >= 20 && /\d/.test(c) && /[a-zA-Z]/.test(c)) return true;
+        return false;
+    }
+
+    function applyBarcodeToForm(code) {
+        const saved = loadBarcodes()[code] || null;
+        openModal();
+        pendingBarcode = code;
+        if (saved) {
+            const form = document.getElementById('position-form');
+            form.name.value = saved.name || '';
+            if (saved.tob) form.tob.value = saved.tob;
+            if (saved.category) setCategory(saved.category);
+            Utils.toast(`Подтянуто: ${saved.name}`);
+        } else {
+            Utils.toast('Новый штрихкод — заполни и сохрани');
+        }
+    }
+
+    function startScan() {
         Scanner.open((code) => {
             if (!code) return;
-            const saved = loadBarcodes()[code] || null;
-            openModal();
-            pendingBarcode = code;
-            if (saved) {
-                const form = document.getElementById('position-form');
-                form.name.value = saved.name || '';
-                if (saved.tob) form.tob.value = saved.tob;
-                if (saved.category) setCategory(saved.category);
-                Utils.toast(`Подтянуто: ${saved.name}`);
+            if (looksLikeHonestMark(code)) {
+                handleHonestMarkResult(code, {});
             } else {
-                Utils.toast('Новый штрихкод — заполни и сохрани');
+                applyBarcodeToForm(code);
             }
         });
     }
@@ -448,32 +464,39 @@ const Positions = (() => {
         return info;
     }
 
-    function startHonestMarkScan(opts = {}) {
-        Scanner.open(async (code) => {
-            if (!code) return;
-            if (!opts.skipOpenModal) openModal();
-            setCategory('cookies');
-            const local = applyHonestMarkToForm(code);
+    async function handleHonestMarkResult(code, opts = {}) {
+        if (!code) return;
+        if (!opts.skipOpenModal) openModal();
+        setCategory('cookies');
+        const local = applyHonestMarkToForm(code);
 
+        if (local.expiry_date) {
+            const exp = new Date(local.expiry_date + 'T23:59');
+            Utils.toast(
+                () => 'Код привязан · до ' + local.expiry_date + ' · ' + Utils.countdown(exp),
+                { ttl: 7000 }
+            );
+        } else {
             const parts = ['Код привязан'];
             if (local.production_date) parts.push('произведено ' + local.production_date);
-            if (local.expiry_date) parts.push('до ' + local.expiry_date);
-            if (!local.production_date && !local.expiry_date) {
-                parts.push('даты в коде нет — введи вручную');
-            }
+            if (!local.production_date) parts.push('даты в коде нет — введи вручную');
             Utils.toast(parts.join(' · '));
+        }
 
-            try {
-                const r = await Api.post('/api/honest-mark/info', { code });
-                if (r && r.ok && r.info && r.info.name) {
-                    const form = document.getElementById('position-form');
-                    if (!form.name.value.trim()) {
-                        form.name.value = r.info.name;
-                        Utils.toast('Название подтянуто из Честного Знака');
-                    }
+        try {
+            const r = await Api.post('/api/honest-mark/info', { code });
+            if (r && r.ok && r.info && r.info.name) {
+                const form = document.getElementById('position-form');
+                if (!form.name.value.trim()) {
+                    form.name.value = r.info.name;
+                    Utils.toast('Название подтянуто из Честного Знака');
                 }
-            } catch {}
-        });
+            }
+        } catch {}
+    }
+
+    function startHonestMarkScan(opts = {}) {
+        Scanner.open((code) => handleHonestMarkResult(code, opts));
     }
 
     let _honestPollTimer = null;
@@ -873,8 +896,8 @@ const Positions = (() => {
         Nav.onShow('positions', render);
 
         document.getElementById('btn-add-position').addEventListener('click', () => openModal());
-        document.getElementById('btn-scan-position').addEventListener('click', startBarcodeScan);
-        document.getElementById('btn-scan-mark')?.addEventListener('click', () => startHonestMarkScan());
+        document.getElementById('btn-scan-position').addEventListener('click', startScan);
+        document.getElementById('btn-scan-mark')?.addEventListener('click', startScan);
         document.getElementById('btn-scan-hmark')?.addEventListener('click', () => startHonestMarkScan({ skipOpenModal: true }));
         document.getElementById('btn-clear-hmark')?.addEventListener('click', () => showHonestMark(''));
         document.getElementById('position-form').addEventListener('submit', handleSubmit);

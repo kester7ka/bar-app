@@ -117,12 +117,43 @@ const Utils = (() => {
         return `${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]}`;
     };
 
-    const toast = (msg) => {
+    const toast = (msg, opts = {}) => {
         const el = document.getElementById('toast');
-        el.textContent = msg;
+        if (el._tick) { clearInterval(el._tick); el._tick = null; }
+        const render = typeof msg === 'function' ? msg : () => msg;
+        el.textContent = render();
         el.classList.add('show');
         clearTimeout(el._t);
-        el._t = setTimeout(() => el.classList.remove('show'), 2200);
+        const ttl = opts.ttl || 2200;
+        if (typeof msg === 'function') {
+            el._tick = setInterval(() => {
+                if (!el.classList.contains('show')) {
+                    clearInterval(el._tick); el._tick = null; return;
+                }
+                el.textContent = render();
+            }, opts.interval || 1000);
+        }
+        el._t = setTimeout(() => {
+            el.classList.remove('show');
+            if (el._tick) { clearInterval(el._tick); el._tick = null; }
+        }, ttl);
+    };
+
+    const countdown = (target) => {
+        const end = (target instanceof Date) ? target.getTime() : new Date(target).getTime();
+        if (isNaN(end)) return '';
+        let s = Math.floor((end - Date.now()) / 1000);
+        const past = s < 0;
+        s = Math.abs(s);
+        const d = Math.floor(s / 86400); s -= d * 86400;
+        const h = Math.floor(s / 3600); s -= h * 3600;
+        const m = Math.floor(s / 60); s -= m * 60;
+        const parts = [];
+        if (d) parts.push(d + 'д');
+        if (h || d) parts.push(h + 'ч');
+        parts.push(m + 'м');
+        parts.push(String(s).padStart(2, '0') + 'с');
+        return (past ? 'просрочено на ' : 'осталось ') + parts.join(' ');
     };
 
     const escape = (str) =>
@@ -170,6 +201,7 @@ const Utils = (() => {
         greeting,
         dateLine,
         toast,
+        countdown,
         escape,
         pluralDay,
         openedAgo
