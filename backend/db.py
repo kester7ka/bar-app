@@ -42,6 +42,57 @@ def _migrate(conn) -> None:
     if not row or not row["sql"]:
         return
     sql_upper = " ".join(row["sql"].split()).upper()
+    if "LENGTH(TOB) = 6" in sql_upper:
+        conn.executescript(
+            """
+            BEGIN;
+            CREATE TABLE positions_tob (
+                id                TEXT    PRIMARY KEY,
+                bar_id            INTEGER NOT NULL REFERENCES bars(id) ON DELETE CASCADE,
+                tob               TEXT    NOT NULL,
+                name              TEXT    NOT NULL,
+                category          TEXT    NOT NULL REFERENCES categories(code),
+                production_date   TEXT,
+                closed_shelf_days INTEGER,
+                honest_mark       TEXT,
+                expiry_closed     TEXT    NOT NULL,
+                shelf_open_days   INTEGER,
+                is_open           INTEGER NOT NULL DEFAULT 0,
+                opened_at         TEXT,
+                created_by        INTEGER REFERENCES users(id) ON DELETE SET NULL,
+                created_at        TEXT    NOT NULL DEFAULT (datetime('now')),
+                updated_at        TEXT    NOT NULL DEFAULT (datetime('now')),
+                CHECK (length(tob) BETWEEN 6 AND 7),
+                CHECK (tob NOT GLOB '*[^0-9]*'),
+                CHECK (is_open IN (0, 1))
+            );
+            INSERT INTO positions_tob
+                (id, bar_id, tob, name, category, production_date, closed_shelf_days,
+                 honest_mark, expiry_closed, shelf_open_days, is_open, opened_at,
+                 created_by, created_at, updated_at)
+            SELECT id, bar_id, tob, name, category, production_date, closed_shelf_days,
+                   honest_mark, expiry_closed, shelf_open_days, is_open, opened_at,
+                   created_by, created_at, updated_at
+              FROM positions;
+            DROP TABLE positions;
+            ALTER TABLE positions_tob RENAME TO positions;
+            CREATE INDEX IF NOT EXISTS idx_positions_open_siblings
+                ON positions (bar_id, lower(name), category, is_open);
+            CREATE INDEX IF NOT EXISTS idx_positions_bar_expiry
+                ON positions (bar_id, expiry_closed);
+            CREATE INDEX IF NOT EXISTS idx_positions_bar_category
+                ON positions (bar_id, category);
+            CREATE TRIGGER IF NOT EXISTS positions_updated
+            AFTER UPDATE ON positions
+            FOR EACH ROW
+            BEGIN
+                UPDATE positions SET updated_at = datetime('now') WHERE id = NEW.id;
+            END;
+            COMMIT;
+            """
+        )
+        return
+
     if "UNIQUE (BAR_ID, TOB)" in sql_upper or "UNIQUE(BAR_ID, TOB)" in sql_upper:
         conn.executescript(
             """

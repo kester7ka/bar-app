@@ -171,6 +171,26 @@ body.locked {
 .password-toggle.visible .eye-show { display: none; }
 .password-toggle.visible .eye-hide { display: inline-block; }
 
+.pwd-strength {
+    margin-top: 8px;
+    height: 4px;
+    border-radius: 999px;
+    background: var(--surface-2);
+    overflow: hidden;
+}
+
+.pwd-strength-fill {
+    display: block;
+    height: 100%;
+    width: 0;
+    border-radius: 999px;
+    transition: width 0.25s ease, background 0.25s ease;
+}
+
+.pwd-strength.weak   .pwd-strength-fill { width: 33%;  background: #dc2626; }
+.pwd-strength.medium .pwd-strength-fill { width: 66%;  background: #d97706; }
+.pwd-strength.strong .pwd-strength-fill { width: 100%; background: #16a34a; }
+
 .policy-check {
     display: flex;
     align-items: flex-start;

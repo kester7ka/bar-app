@@ -555,6 +555,19 @@ const Schedule = (() => {
             });
         });
 
+        scrollToToday();
+    }
+
+    function scrollToToday() {
+        requestAnimationFrame(() => {
+            const scroller = document.querySelector('#schedule-body .schedule-grid-scroll');
+            const todayCell = document.querySelector('#schedule-body .schedule-grid th.today');
+            if (!scroller || !todayCell) return;
+            const sRect = scroller.getBoundingClientRect();
+            const cRect = todayCell.getBoundingClientRect();
+            const delta = (cRect.left - sRect.left) - scroller.clientWidth / 2 + cRect.width / 2;
+            scroller.scrollLeft = Math.max(0, scroller.scrollLeft + delta);
+        });
     }
 
     function monthMatchesNow(month) {

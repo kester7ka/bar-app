@@ -151,6 +151,18 @@ const Auth = (() => {
             });
         });
 
+        const pwdInput = document.getElementById('reg-password');
+        const pwdBar = document.getElementById('pwd-strength');
+        if (pwdInput && pwdBar) {
+            pwdInput.addEventListener('input', () => {
+                const level = passwordStrength(pwdInput.value);
+                pwdBar.classList.remove('weak', 'medium', 'strong');
+                if (level === 1) pwdBar.classList.add('weak');
+                else if (level === 2) pwdBar.classList.add('medium');
+                else if (level === 3) pwdBar.classList.add('strong');
+            });
+        }
+
         
         document.getElementById('form-register').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -187,6 +199,24 @@ const Auth = (() => {
                 showError(err.message);
             }
         });
+    }
+
+    function passwordStrength(pw) {
+        if (!pw) return 0;
+        if (pw.length < 8) return 1;
+        let variety = 0;
+        if (/[a-zа-яё]/.test(pw)) variety++;
+        if (/[A-ZА-ЯЁ]/.test(pw)) variety++;
+        if (/\d/.test(pw)) variety++;
+        if (/[^A-Za-zА-Яа-яЁё0-9]/.test(pw)) variety++;
+        let score = 0;
+        if (pw.length >= 8) score++;
+        if (pw.length >= 12) score++;
+        if (variety >= 2) score++;
+        if (variety >= 3) score++;
+        if (score >= 4) return 3;
+        if (score >= 2) return 2;
+        return 1;
     }
 
     function init() {

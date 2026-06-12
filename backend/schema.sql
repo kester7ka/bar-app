@@ -69,8 +69,8 @@ CREATE TABLE IF NOT EXISTS positions (
     created_by        INTEGER REFERENCES users(id) ON DELETE SET NULL,
     created_at        TEXT    NOT NULL DEFAULT (datetime('now')),
     updated_at        TEXT    NOT NULL DEFAULT (datetime('now')),
-    CHECK (length(tob) = 6),
-    CHECK (tob GLOB '[0-9][0-9][0-9][0-9][0-9][0-9]'),
+    CHECK (length(tob) BETWEEN 6 AND 7),
+    CHECK (tob NOT GLOB '*[^0-9]*'),
     CHECK (is_open IN (0, 1))
 );
 

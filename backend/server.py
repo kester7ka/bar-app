@@ -41,12 +41,12 @@ else:
     _origins = [o.strip().rstrip("/") for o in CORS_ORIGINS.split(",") if o.strip()]
     CORS(app, resources={r"/api/*": {"origins": _origins}})
 
-TOB_RE = re.compile(r"^\d{6}$")
+TOB_RE = re.compile(r"^\d{6,7}$")
 KEY_RE = re.compile(r"^\d{8}$")
-USERNAME_RE = re.compile(r"^[A-Za-zА-Яа-яЁё0-9_.-]{3,32}$")
+USERNAME_RE = re.compile(r"^[A-Za-zА-Яа-яЁё0-9_.-]{3,15}$")
 ALLOWED_CATEGORIES = {"ingredients", "syrups", "cookies", "other"}
 
-MAX_USERNAME = 32
+MAX_USERNAME = 15
 MAX_DISPLAY_NAME = 64
 MAX_PASSWORD = 128
 MAX_NAME = 120
@@ -72,15 +72,24 @@ _LOG_SAFE_RE = re.compile(r"[\r\n\t\x00-\x1f\x7f]")
 def _safe_log(value: str, limit: int = 64) -> str:
     return _LOG_SAFE_RE.sub("?", str(value))[:limit]
 
-def _rate_ok(bucket: str) -> bool:
+def _rate_ok(bucket: str, limit: int = AUTH_RATE_LIMIT, window: int = AUTH_RATE_WINDOW) -> bool:
     now = time()
     dq = _attempts.setdefault(bucket, deque())
-    while dq and now - dq[0] > AUTH_RATE_WINDOW:
+    while dq and now - dq[0] > window:
         dq.popleft()
-    return len(dq) < AUTH_RATE_LIMIT
+    return len(dq) < limit
 
 def _rate_hit(bucket: str) -> None:
     _attempts.setdefault(bucket, deque()).append(time())
+
+HZN_RATE_WINDOW = 300
+
+def _hzn_guard(prefix: str, limit: int) -> bool:
+    bucket = f"{prefix}:{getattr(g, 'user_id', '?')}"
+    if not _rate_ok(bucket, limit, HZN_RATE_WINDOW):
+        return False
+    _rate_hit(bucket)
+    return True
 
 def _dummy_hash() -> str:
     global _dummy_hash_cache
@@ -94,6 +103,7 @@ def add_headers(resp):
     resp.headers.setdefault("X-Frame-Options", "DENY")
     resp.headers.setdefault("Referrer-Policy", "same-origin")
     resp.headers.setdefault("Permissions-Policy", "geolocation=(), microphone=()")
+    resp.headers.setdefault("Strict-Transport-Security", "max-age=31536000")
     return resp
 
 def require_auth(fn):
@@ -155,7 +165,7 @@ def register():
         return _err("Ключ должен состоять из 8 цифр")
     if not USERNAME_RE.match(username):
         _rate_hit(bucket)
-        return _err("Никнейм: 3–32 символа, буквы/цифры/._-")
+        return _err("Никнейм: 3–15 символов, буквы/цифры/._-")
     if len(password) < 8 or len(password) > MAX_PASSWORD:
         _rate_hit(bucket)
         return _err(f"Пароль: от 8 до {MAX_PASSWORD} символов")
@@ -167,10 +177,6 @@ def register():
     try:
         with connect() as conn:
 
-            if conn.execute("SELECT 1 FROM users WHERE username = ? COLLATE NOCASE", (username,)).fetchone():
-                _rate_hit(bucket)
-                return _err("Никнейм уже занят", HTTPStatus.CONFLICT)
-
             key_row = conn.execute(
                 "SELECT id, bar_id, used_at FROM one_time_keys WHERE key = ?",
                 (key,),
@@ -181,6 +187,10 @@ def register():
             if key_row["used_at"]:
                 _rate_hit(bucket)
                 return _err("Этот ключ уже использован", HTTPStatus.GONE)
+
+            if conn.execute("SELECT 1 FROM users WHERE username = ? COLLATE NOCASE", (username,)).fetchone():
+                _rate_hit(bucket)
+                return _err("Никнейм уже занят", HTTPStatus.CONFLICT)
 
             cur = conn.execute(
                 """INSERT INTO users (bar_id, username, password_hash, display_name, accepted_policy_at)
@@ -672,6 +682,8 @@ def _hzn_extract_info(data):
 @app.get("/api/honest-mark/health")
 @require_auth
 def hzn_health():
+    if not _hzn_guard("hzn-health", 12):
+        return _err("Слишком часто. Подожди немного.", HTTPStatus.TOO_MANY_REQUESTS)
     import json as _json
     import time as _time
     import urllib.error as _urlerr
@@ -703,17 +715,19 @@ def hzn_health():
             "note": "сервер отвечает",
         })
     except Exception as e:
+        logger.warning("hzn health failed: %s", type(e).__name__)
         return jsonify({
             "ok": False,
             "ms": int((_time.monotonic() - start) * 1000),
-            "error": f"{type(e).__name__}: {str(e)[:120]}",
-            "url": HONEST_MARK_URL,
+            "error": "сервис недоступен",
         })
 
 
 @app.post("/api/honest-mark/info")
 @require_auth
 def hzn_info():
+    if not _hzn_guard("hzn-info", 40):
+        return _err("Слишком часто. Подожди немного.", HTTPStatus.TOO_MANY_REQUESTS)
     data = request.get_json(silent=True) or {}
     code = (data.get("code") or "").strip()
     if not code:
@@ -752,6 +766,8 @@ def _check_honest_marks(codes):
 @app.post("/api/honest-mark/check")
 @require_auth
 def honest_mark_check():
+    if not _hzn_guard("hzn-check", 8):
+        return _err("Слишком часто. Подожди немного.", HTTPStatus.TOO_MANY_REQUESTS)
     with connect() as conn:
         rows = conn.execute(
             "SELECT id, honest_mark FROM positions "
@@ -811,6 +827,7 @@ def schedule_xlsx():
 
 @app.get("/api/bars")
 @require_auth
+@require_admin
 def list_bars():
     with connect() as conn:
         rows = conn.execute("SELECT * FROM bars ORDER BY code").fetchall()
@@ -861,7 +878,7 @@ def _validate(payload: dict):
     if len(name) > MAX_NAME:
         return None, f"Название не длиннее {MAX_NAME} символов"
     if not TOB_RE.match(tob):
-        return None, "TOB — ровно 6 цифр"
+        return None, "TOB — 6 или 7 цифр"
     if category not in ALLOWED_CATEGORIES:
         return None, "Неизвестная категория"
 
@@ -878,6 +895,8 @@ def _validate(payload: dict):
     if shelf_open_days is not None and str(shelf_open_days) != "":
         try:
             shelf_open_days = int(shelf_open_days)
+            if shelf_open_days < 1:
+                return None, "Срок после вскрытия должен быть положительным"
         except (TypeError, ValueError):
             return None, "shelf_open_days должно быть числом"
     else:

@@ -467,7 +467,7 @@
                     </label>
                     <label class="field">
                         <span>Никнейм</span>
-                        <input type="text" name="username" required minlength="3" maxlength="32" placeholder="как тебя называть в системе">
+                        <input type="text" name="username" required minlength="3" maxlength="15" placeholder="как тебя называть в системе">
                     </label>
                     <label class="field">
                         <span>Имя (необязательно)</span>
@@ -476,12 +476,13 @@
                     <label class="field">
                         <span>Пароль</span>
                         <div class="password-input">
-                            <input type="password" name="password" required minlength="8" autocomplete="new-password">
+                            <input type="password" name="password" id="reg-password" required minlength="8" autocomplete="new-password">
                             <button type="button" class="password-toggle" data-pwd-toggle aria-label="Показать пароль">
                                 <i class="ph ph-eye eye-show" style="font-size:20px"></i>
                                 <i class="ph ph-eye-slash eye-hide" style="font-size:20px"></i>
                             </button>
                         </div>
+                        <div class="pwd-strength" id="pwd-strength" aria-hidden="true"><span class="pwd-strength-fill"></span></div>
                     </label>
 
                     <label class="policy-check">
