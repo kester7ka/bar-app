@@ -695,11 +695,19 @@ const Positions = (() => {
         let format = 'CODE128';
         if (/^\d{13}$/.test(value)) format = 'EAN13';
         else if (/^\d{8}$/.test(value)) format = 'EAN8';
-        const opts = { width: 2, height: 60, displayValue: true, fontSize: 13, margin: 6, background: '#ffffff', lineColor: '#111111' };
+        const opts = { width: 2, height: 70, displayValue: false, margin: 0, background: '#ffffff', lineColor: '#111111' };
         try {
             JsBarcode(svg, value, { ...opts, format });
         } catch {
-            try { JsBarcode(svg, value, { ...opts, format: 'CODE128' }); } catch {}
+            try { JsBarcode(svg, value, { ...opts, format: 'CODE128' }); } catch { return; }
+        }
+        const w = svg.getAttribute('width');
+        const h = svg.getAttribute('height');
+        if (w && h) {
+            svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+            svg.setAttribute('preserveAspectRatio', 'none');
+            svg.removeAttribute('width');
+            svg.removeAttribute('height');
         }
     }
 
@@ -782,7 +790,10 @@ const Positions = (() => {
             ${barcodeVal ? `
             <div class="detail-code">
                 <div class="detail-code-head"><i class="ph ph-barcode"></i><span>Штрихкод</span></div>
-                <div class="detail-barcode-wrap"><svg id="detail-barcode"></svg></div>
+                <div class="detail-barcode-wrap">
+                    <svg id="detail-barcode"></svg>
+                    <div class="detail-barcode-val">${Utils.escape(barcodeVal)}</div>
+                </div>
             </div>` : ''}
 
             ${p.honest_mark ? `

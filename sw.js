@@ -1,4 +1,4 @@
-const CACHE = 'bar-app-v22';
+const CACHE = 'bar-app-v23';
 const ASSETS = [
   './',
   './index.html',
