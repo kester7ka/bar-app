@@ -19,7 +19,7 @@ const Utils = (() => {
         return result;
     };
 
-    const isValidTob = (s) => /^\d{6}$/.test(String(s || '').trim());
+    const isValidTob = (s) => /^\d{6,7}$/.test(String(s || '').trim());
 
     const today = () => new Date().toISOString().slice(0, 10);
 

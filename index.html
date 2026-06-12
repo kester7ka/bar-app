@@ -148,6 +148,8 @@
                     <ul class="news-list">
                         <li><b>Новый сканер</b>: один на всё — штрихкод, QR и Честный Знак. Рамка сама притягивается к коду на айфоне и андроиде, есть фонарик, снимок и загрузка из фото.</li>
                         <li>Обновили все иконки в приложении — теперь единый аккуратный стиль.</li>
+                        <li><b>Карточка позиции переделана</b>: наглядный статус сверху, штрихкод теперь рисуется прямо в карточке, данные Честного Знака — отдельным блоком.</li>
+                        <li><b>Статус сервисов</b> стал подробнее: все API списком, видно где «работает», «работает локально» или «работает частично».</li>
                     </ul>
                 </div>
             </div>
@@ -858,35 +860,21 @@
                 </button>
             </header>
             <div class="overlay-body">
-                <div class="status-card">
-                    <div class="status-list">
-                        <div class="status-row">
-                            <span class="svc-dot checking" id="svc-server-dot"></span>
-                            <span class="svc-name">Сервер</span>
-                            <span class="svc-state" id="svc-server-state">проверяем…</span>
-                        </div>
-                        <div class="status-row">
-                            <span class="svc-dot checking" id="svc-db-dot"></span>
-                            <span class="svc-name">База данных</span>
-                            <span class="svc-state" id="svc-db-state">проверяем…</span>
-                        </div>
-                        <div class="status-row">
-                            <span class="svc-dot checking" id="svc-api-dot"></span>
-                            <span class="svc-name">API</span>
-                            <span class="svc-state" id="svc-api-state">проверяем…</span>
-                        </div>
-                        <div class="status-row">
-                            <span class="svc-dot checking" id="svc-hzn-dot"></span>
-                            <span class="svc-name">Честный Знак</span>
-                            <span class="svc-state" id="svc-hzn-state">проверяем…</span>
-                        </div>
+                <div class="status-banner state-checking" id="status-banner">
+                    <span class="status-banner-ic" id="status-banner-ic"><i class="ph ph-circle"></i></span>
+                    <div class="status-banner-body">
+                        <div class="status-banner-title" id="status-banner-title">Проверяем…</div>
+                        <div class="status-banner-sub" id="status-banner-sub">—</div>
                     </div>
-                    <div class="status-footer" id="status-footer">—</div>
+                </div>
+
+                <div class="status-card">
+                    <div class="status-list" id="status-list"></div>
                 </div>
 
                 <p class="status-hint">
                     Чтобы не нагружать сервер, ручная проверка доступна не чаще раза в минуту. Автоматическая проверка происходит при открытии этой страницы.<br><br>
-                    <b>Честный Знак</b> — экспериментальная проверка через публичный API. Часто отвечает «недоступен», потому что официальный сервис требует токенов от приложения «Честный Знак». Это <b>не мешает</b> сканированию: даты производства и срок годности приложение тянет прямо из самого DataMatrix-кода (AI 11 и AI 17). Только название товара без API не подтянется.
+                    <b>Честный Знак · «работает локально»</b> — это нормально. Серверная проверка через публичный API недоступна (официальный сервис требует токенов от приложения «Честный Знак»), но это <b>не мешает</b> сканированию: даты производства и срок годности приложение тянет прямо из самого DataMatrix-кода (AI 11 и AI 17). Только название товара без API не подтянется.
                 </p>
             </div>
         </div>
@@ -1021,6 +1009,8 @@
     <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
     <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
 
     
     <script>window.BAR_APP_API = 'https://bar-app-production-79d1.up.railway.app';</script>

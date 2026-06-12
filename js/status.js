@@ -1,14 +1,22 @@
 const Status = (() => {
     const MIN_INTERVAL = 60 * 1000;
-    const SVCS = ['server', 'db', 'api', 'hzn'];
 
-    let lastCheck = 0;            
-    let lastResult = null;        
+    const SERVICES = [
+        { id: 'server',    label: 'Сервер',          icon: 'hard-drives' },
+        { id: 'db',        label: 'База данных',      icon: 'database' },
+        { id: 'positions', label: 'API позиций',      icon: 'package' },
+        { id: 'auth',      label: 'API авторизации',  icon: 'lock-simple' },
+        { id: 'kb',        label: 'API базы знаний',  icon: 'books' },
+        { id: 'schedule',  label: 'API графика',      icon: 'calendar-blank' },
+        { id: 'hzn',       label: 'Честный Знак',     icon: 'seal-check' },
+    ];
+
+    let lastCheck = 0;
+    let lastResult = null;
     let _checking = false;
 
     function open() {
         document.getElementById('status-overlay').classList.add('show');
-        
         if (lastResult && Date.now() - lastCheck < MIN_INTERVAL) {
             renderResult(lastResult);
         } else {
@@ -26,37 +34,30 @@ const Status = (() => {
         const btn = document.getElementById('status-refresh');
         btn?.classList.add('spinning');
 
-        SVCS.forEach(s => setSvc(s, 'checking'));
-        setFooter('проверяем…', '');
+        renderRows(Object.fromEntries(SERVICES.map(s => [s.id, 'checking'])));
+        setBanner('checking', 'Проверяем…', '');
         setSummary('проверяем…');
 
         const start = performance.now();
-        let serverOk = false;
-        let dbOk = false;
-        let hznOk = false;
+        let server = false, db = false, hznServer = false;
 
         try {
-            const data = await Api.get('/api/health');
-            serverOk = true;
-            dbOk = !!(data && data.db);
+            const d = await Api.get('/api/health');
+            server = true;
+            db = !!(d && d.db);
         } catch (e) {}
 
-        if (serverOk) {
+        if (server) {
             try {
                 const h = await Api.get('/api/honest-mark/health');
-                hznOk = !!(h && h.ok);
+                hznServer = !!(h && h.ok);
             } catch (e) {}
         }
 
         const ms = Math.round(performance.now() - start);
-        const apiOk = serverOk && dbOk;
         const result = {
-            server: serverOk,
-            db: dbOk,
-            api: apiOk,
-            hzn: hznOk,
-            ms,
-            time: new Date()
+            states: computeStates(server, db, hznServer),
+            server, db, ms, time: new Date(),
         };
         lastResult = result;
         lastCheck = Date.now();
@@ -66,57 +67,76 @@ const Status = (() => {
         _checking = false;
     }
 
+    function computeStates(server, db, hznServer) {
+        if (!server) {
+            const out = {};
+            SERVICES.forEach(s => { out[s.id] = 'fail'; });
+            return out;
+        }
+        return {
+            server: 'ok',
+            db: db ? 'ok' : 'fail',
+            positions: db ? 'ok' : 'partial',
+            auth: 'ok',
+            kb: db ? 'ok' : 'partial',
+            schedule: 'ok',
+            hzn: hznServer ? 'ok' : 'local',
+        };
+    }
+
     function renderResult(r) {
-        setSvc('server', r.server ? 'ok' : 'fail');
-        setSvc('db',     r.db     ? 'ok' : 'fail');
-        setSvc('api',    r.api    ? 'ok' : 'fail');
-        setSvc('hzn',    r.hzn    ? 'ok' : 'fail');
-
+        renderRows(r.states);
+        const vals = Object.values(r.states);
         const time = fmtTime(r.time);
-        const left = r.server ? `проверено ${time}` : `нет связи · ${time}`;
-        const right = r.server ? `${r.ms} мс` : '';
-        setFooter(left, right);
+        const sub = r.server ? `проверено ${time} · ${r.ms} мс` : `нет связи · ${time}`;
 
-        const allOk = r.server && r.db && r.api;
-        const someFail = !r.server || !r.db || !r.api;
-        if (allOk) setSummary('все системы в порядке');
-        else if (!r.server) setSummary('сервер не отвечает');
-        else if (!r.db) setSummary('проблема с БД');
-        else if (someFail) setSummary('частичные проблемы');
-    }
-
-    
-    function manualRefresh() {
-        const elapsed = Date.now() - lastCheck;
-        if (elapsed < MIN_INTERVAL) {
-            const wait = Math.ceil((MIN_INTERVAL - elapsed) / 1000);
-            Utils.toast(`Подожди ещё ${wait} сек до проверки`);
-            return;
-        }
-        doCheck();
-    }
-
-    function setSvc(name, state) {
-        const dot = document.getElementById(`svc-${name}-dot`);
-        const text = document.getElementById(`svc-${name}-state`);
-        if (!dot || !text) return;
-        dot.className = `svc-dot ${state}`;
-        if (state === 'ok') {
-            text.className = 'svc-state ok';
-            text.textContent = 'работает';
-        } else if (state === 'fail') {
-            text.className = 'svc-state fail';
-            text.textContent = name === 'hzn' ? 'недоступен' : 'не отвечает';
+        if (!r.server) {
+            setBanner('fail', 'Сервер недоступен', sub);
+            setSummary('нет связи');
+        } else if (vals.includes('fail')) {
+            setBanner('partial', 'Работает частично', sub);
+            setSummary('частично');
+        } else if (vals.includes('local') || vals.includes('partial')) {
+            setBanner('partial', 'Работает частично', sub);
+            setSummary('частично');
         } else {
-            text.className = 'svc-state';
-            text.textContent = 'проверяем…';
+            setBanner('ok', 'Все системы работают', sub);
+            setSummary('всё в порядке');
         }
     }
 
-    function setFooter(left, right) {
-        const el = document.getElementById('status-footer');
-        if (!el) return;
-        el.innerHTML = `<span>${Utils.escape(left)}</span>` + (right ? `<span>${Utils.escape(right)}</span>` : '');
+    function renderRows(states) {
+        const list = document.getElementById('status-list');
+        if (!list) return;
+        list.innerHTML = SERVICES.map(s => {
+            const st = states[s.id] || 'checking';
+            return `
+                <div class="status-row state-${st}">
+                    <span class="svc-ic"><i class="ph ph-${s.icon}"></i></span>
+                    <span class="svc-name">${s.label}</span>
+                    <span class="svc-state">${stateText(s.id, st)}</span>
+                </div>`;
+        }).join('');
+    }
+
+    function stateText(id, st) {
+        if (st === 'ok') return 'работает';
+        if (st === 'local') return 'работает локально';
+        if (st === 'partial') return 'работает частично';
+        if (st === 'checking') return 'проверяем…';
+        return id === 'hzn' ? 'недоступен' : 'не отвечает';
+    }
+
+    function setBanner(state, title, sub) {
+        const b = document.getElementById('status-banner');
+        const ic = document.getElementById('status-banner-ic');
+        const t = document.getElementById('status-banner-title');
+        const s = document.getElementById('status-banner-sub');
+        const icon = { ok: 'check-circle', partial: 'warning', fail: 'x-circle', checking: 'circle' }[state] || 'circle';
+        if (b) b.className = `status-banner state-${state}`;
+        if (ic) ic.innerHTML = `<i class="ph ph-${icon}"></i>`;
+        if (t) t.textContent = title;
+        if (s) s.textContent = sub;
     }
 
     function setSummary(text) {
@@ -127,6 +147,16 @@ const Status = (() => {
     function fmtTime(d) {
         const pad = (n) => String(n).padStart(2, '0');
         return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    function manualRefresh() {
+        const elapsed = Date.now() - lastCheck;
+        if (elapsed < MIN_INTERVAL) {
+            const wait = Math.ceil((MIN_INTERVAL - elapsed) / 1000);
+            Utils.toast(`Подожди ещё ${wait} сек до проверки`);
+            return;
+        }
+        doCheck();
     }
 
     function init() {

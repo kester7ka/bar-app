@@ -519,7 +519,7 @@ const Positions = (() => {
         const tob = String(data.get('tob')).trim();
 
         if (!Utils.isValidTob(tob)) {
-            Utils.toast('TOB: ровно 6 цифр');
+            Utils.toast('TOB: 6 или 7 цифр');
             return;
         }
 
@@ -678,7 +678,31 @@ const Positions = (() => {
         btn.textContent = willStep2 ? 'Далее →' : 'Сохранить';
     }
 
-    
+    const CAT_ICON = { ingredients: 'drop', syrups: 'flask', cookies: 'cookie', other: 'package' };
+
+    function findBarcodeForTob(tob) {
+        if (!tob) return null;
+        const all = loadBarcodes();
+        for (const [code, data] of Object.entries(all)) {
+            if (data && data.tob === tob) return code;
+        }
+        return null;
+    }
+
+    function renderDetailBarcode(value) {
+        const svg = document.getElementById('detail-barcode');
+        if (!svg || typeof JsBarcode === 'undefined') return;
+        let format = 'CODE128';
+        if (/^\d{13}$/.test(value)) format = 'EAN13';
+        else if (/^\d{8}$/.test(value)) format = 'EAN8';
+        const opts = { width: 2, height: 60, displayValue: true, fontSize: 13, margin: 6, background: '#ffffff', lineColor: '#111111' };
+        try {
+            JsBarcode(svg, value, { ...opts, format });
+        } catch {
+            try { JsBarcode(svg, value, { ...opts, format: 'CODE128' }); } catch {}
+        }
+    }
+
     const openDetails = (id) => {
         const p = Storage.get(id);
         if (!p) return;
@@ -702,33 +726,40 @@ const Positions = (() => {
 
         document.getElementById('detail-title').textContent = p.name;
         const body = document.getElementById('detail-body');
+
+        const cat = Utils.CATEGORIES[p.category] || p.category;
+        const catIcon = CAT_ICON[p.category] || 'package';
+        const heroIcon = exp.level === 'expired' ? 'warning-octagon'
+                       : exp.level === 'expiring-soon' ? 'warning' : 'seal-check';
+        const barcodeVal = findBarcodeForTob(p.tob);
+        const hz = p.honest_mark ? parseHonestMarkInfo(p.honest_mark) : null;
+
+        const row = (label, value, cls = '') =>
+            `<div class="detail-row ${cls}"><span class="label">${label}</span><span class="value">${value}</span></div>`;
+
         body.innerHTML = `
-            <div class="detail-section">
-                <div class="detail-row">
-                    <span class="label">TOB</span>
-                    <span class="value"><span class="tob-tag">${Utils.escape(p.tob)}</span></span>
-                </div>
-                <div class="detail-row">
-                    <span class="label">Категория</span>
-                    <span class="value">${Utils.CATEGORIES[p.category]}</span>
-                </div>
-                <div class="detail-row">
-                    <span class="label">Статус</span>
-                    <span class="value" style="color: ${p.is_open ? 'var(--success)' : 'var(--text-muted)'}">${p.is_open ? 'Открыта' : 'Закрыта'}</span>
+            <div class="detail-hero level-${exp.level}">
+                <span class="detail-hero-ic"><i class="ph ph-${heroIcon}"></i></span>
+                <div class="detail-hero-body">
+                    <div class="detail-hero-main">${Utils.escape(exp.text)}</div>
+                    <div class="detail-hero-sub">${Utils.formatDateTimeFull(effExp)}</div>
                 </div>
             </div>
 
+            <div class="detail-tags">
+                <button class="detail-tag mono" data-copy="${Utils.escape(p.tob)}" title="Скопировать TOB">
+                    <i class="ph ph-hash"></i>${Utils.escape(p.tob)}
+                </button>
+                <span class="detail-tag"><i class="ph ph-${catIcon}"></i>${Utils.escape(cat)}</span>
+                <span class="detail-tag ${p.is_open ? 'tag-open' : ''}">
+                    <i class="ph ph-${p.is_open ? 'lock-simple-open' : 'lock-simple'}"></i>${p.is_open ? 'Открыта' : 'Закрыта'}
+                </span>
+                ${p.honest_mark ? '<span class="detail-tag tag-hz"><i class="ph ph-seal-check"></i>ЧЗ</span>' : ''}
+            </div>
+
             <div class="detail-section">
-                ${p.production_date ? `
-                <div class="detail-row">
-                    <span class="label">Произведено</span>
-                    <span class="value">${Utils.escape(formatProductionDate(p.production_date))}</span>
-                </div>` : ''}
-                ${p.closed_shelf_days ? `
-                <div class="detail-row">
-                    <span class="label">Срок (от производства)</span>
-                    <span class="value">${p.closed_shelf_days} ${Utils.pluralDay(p.closed_shelf_days)}</span>
-                </div>` : ''}
+                ${p.production_date ? row('Произведено', Utils.escape(formatProductionDate(p.production_date))) : ''}
+                ${p.closed_shelf_days ? row('Срок (от производства)', `${p.closed_shelf_days} ${Utils.pluralDay(p.closed_shelf_days)}`) : ''}
                 <div class="detail-row ${winnerIsClosed ? 'winner' : 'loser'}">
                     <span class="label">Срок упаковки</span>
                     <span class="value">${Utils.formatDateTimeFull(closedExp)}</span>
@@ -744,9 +775,26 @@ const Positions = (() => {
                 </div>` : '')}
                 <div class="detail-row big">
                     <span class="label">Фактический срок</span>
-                    <span class="value ${valueCls}">${Utils.formatDateTimeFull(effExp)} · ${exp.text}</span>
+                    <span class="value ${valueCls}">${Utils.formatDateTimeFull(effExp)}</span>
                 </div>
             </div>
+
+            ${barcodeVal ? `
+            <div class="detail-code">
+                <div class="detail-code-head"><i class="ph ph-barcode"></i><span>Штрихкод</span></div>
+                <div class="detail-barcode-wrap"><svg id="detail-barcode"></svg></div>
+            </div>` : ''}
+
+            ${p.honest_mark ? `
+            <div class="detail-code">
+                <div class="detail-code-head"><i class="ph ph-seal-check"></i><span>Честный Знак</span></div>
+                ${(hz.gtin || hz.production_date || hz.expiry_date) ? `<div class="detail-code-grid">
+                    ${hz.gtin ? `<div class="dc-cell"><span class="dc-k">GTIN</span><span class="dc-v mono">${Utils.escape(hz.gtin)}</span></div>` : ''}
+                    ${hz.production_date ? `<div class="dc-cell"><span class="dc-k">Произведено</span><span class="dc-v">${Utils.escape(hz.production_date)}</span></div>` : ''}
+                    ${hz.expiry_date ? `<div class="dc-cell"><span class="dc-k">Годен до</span><span class="dc-v">${Utils.escape(hz.expiry_date)}</span></div>` : ''}
+                </div>` : ''}
+                <button class="detail-code-copy" data-copy="${Utils.escape(p.honest_mark)}"><i class="ph ph-copy"></i>Скопировать код</button>
+            </div>` : ''}
 
             <div class="detail-actions">
                 ${p.is_open
@@ -758,6 +806,20 @@ const Positions = (() => {
                 <button class="btn-danger" data-action="delete">Удалить</button>
             </div>
         `;
+
+        if (barcodeVal) renderDetailBarcode(barcodeVal);
+
+        body.querySelectorAll('[data-copy]').forEach(elem => {
+            elem.addEventListener('click', async (ev) => {
+                ev.stopPropagation();
+                try {
+                    await navigator.clipboard.writeText(elem.dataset.copy);
+                    Utils.toast('Скопировано');
+                } catch {
+                    Utils.toast('Не удалось скопировать');
+                }
+            });
+        });
 
         body.querySelector('[data-action="open"]')?.addEventListener('click', () => toggleOpen(p, true));
         body.querySelector('[data-action="close"]')?.addEventListener('click', () => toggleOpen(p, false));

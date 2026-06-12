@@ -2,81 +2,144 @@
     background: var(--bg);
 }
 
+.status-banner {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px;
+    border-radius: var(--radius);
+    background: var(--surface-2);
+    margin-bottom: 14px;
+}
+
+.status-banner-ic {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    flex-shrink: 0;
+    background: var(--surface);
+    color: var(--text-muted);
+}
+
+.status-banner-title {
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+}
+
+.status-banner-sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 2px;
+    font-variant-numeric: tabular-nums;
+}
+
+.status-banner.state-ok .status-banner-ic {
+    background: rgba(22, 163, 74, 0.14);
+    color: #16a34a;
+}
+
+.status-banner.state-partial {
+    background: rgba(217, 119, 6, 0.08);
+}
+.status-banner.state-partial .status-banner-ic {
+    background: rgba(217, 119, 6, 0.16);
+    color: #d97706;
+}
+.status-banner.state-partial .status-banner-title {
+    color: #d97706;
+}
+
+.status-banner.state-fail {
+    background: rgba(220, 38, 38, 0.08);
+}
+.status-banner.state-fail .status-banner-ic {
+    background: rgba(220, 38, 38, 0.16);
+    color: #dc2626;
+}
+.status-banner.state-fail .status-banner-title {
+    color: #dc2626;
+}
+
+.status-banner.state-checking .status-banner-ic {
+    animation: svc-pulse 1.3s ease-in-out infinite;
+}
+
 .status-card {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    padding: 18px;
+    padding: 6px 16px;
 }
 
 .status-list {
     display: flex;
     flex-direction: column;
-    gap: 14px;
 }
 
 .status-row {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 12px;
+    padding: 13px 0;
+    border-bottom: 1px solid var(--border);
 }
 
-.svc-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: var(--text-muted);
+.status-row:last-child {
+    border-bottom: none;
+}
+
+.svc-ic {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 19px;
     flex-shrink: 0;
-    transition: background 0.2s ease, box-shadow 0.2s ease;
-}
-
-.svc-dot.ok {
-    background: var(--success);
-    box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.15);
-}
-
-.svc-dot.fail {
-    background: var(--danger);
-    box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.15);
-}
-
-.svc-dot.checking {
-    background: var(--text-muted);
-    animation: svc-dot-pulse 1.3s ease-in-out infinite;
-}
-
-@keyframes svc-dot-pulse {
-    0%, 100% { opacity: 0.35; }
-    50%      { opacity: 1; }
+    background: var(--surface-2);
+    color: var(--text-muted);
 }
 
 .svc-name {
     flex: 1;
-    font-size: 15px;
+    font-size: 14.5px;
     font-weight: 500;
     color: var(--text);
     letter-spacing: -0.01em;
 }
 
 .svc-state {
-    font-size: 13px;
+    font-size: 12.5px;
     color: var(--text-muted);
-    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+    text-align: right;
 }
 
-.svc-state.ok   { color: var(--success); font-weight: 500; }
-.svc-state.fail { color: var(--danger);  font-weight: 500; }
+.status-row.state-ok .svc-ic      { background: rgba(22, 163, 74, 0.12); color: #16a34a; }
+.status-row.state-ok .svc-state   { color: #16a34a; }
 
-.status-footer {
-    margin-top: 16px;
-    padding-top: 14px;
-    border-top: 1px solid var(--border);
-    font-size: 12px;
-    color: var(--text-muted);
-    font-variant-numeric: tabular-nums;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+.status-row.state-local .svc-ic     { background: rgba(217, 119, 6, 0.13); color: #d97706; }
+.status-row.state-local .svc-state  { color: #d97706; }
+
+.status-row.state-partial .svc-ic    { background: rgba(217, 119, 6, 0.13); color: #d97706; }
+.status-row.state-partial .svc-state { color: #d97706; }
+
+.status-row.state-fail .svc-ic    { background: rgba(220, 38, 38, 0.12); color: #dc2626; }
+.status-row.state-fail .svc-state { color: #dc2626; }
+
+.status-row.state-checking .svc-state {
+    animation: svc-pulse 1.3s ease-in-out infinite;
+}
+
+@keyframes svc-pulse {
+    0%, 100% { opacity: 0.4; }
+    50%      { opacity: 1; }
 }
 
 .status-hint {
@@ -89,7 +152,7 @@
     line-height: 1.55;
 }
 
-.btn-icon.spinning svg {
+.btn-icon.spinning i {
     animation: status-spin 0.9s linear infinite;
 }
 
