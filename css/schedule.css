@@ -286,8 +286,8 @@
 .schedule-grid td.col-name {
     text-align: left;
     padding: 0 10px;
-    min-width: 140px;
-    max-width: 140px;
+    min-width: 164px;
+    max-width: 164px;
     position: sticky;
     left: 0;
     background: var(--surface);

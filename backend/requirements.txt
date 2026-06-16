@@ -1,7 +1,4 @@
 flask>=3.0
 flask-cors>=4.0
-# Прод-сервер (для Render / Railway / fly.io / VPS).
-# Локально не обязателен — `python server.py` поднимает встроенный dev-сервер.
 gunicorn>=21.2
-# Опционально — для seed_bars.py с подгрузкой реального списка баров из xlsx:
 openpyxl>=3.1

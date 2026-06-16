@@ -20,6 +20,14 @@ const Positions = (() => {
                 }
             }
 
+            const barcodeByTob = {};
+            if (searchQuery) {
+                const all = loadBarcodes();
+                for (const [code, data] of Object.entries(all)) {
+                    if (data && data.tob) barcodeByTob[data.tob] = String(code).toLowerCase();
+                }
+            }
+
             const filtered = list
                 .filter(p => p && (activeCategory === 'all' || p.category === activeCategory))
                 .filter(p => {
@@ -27,7 +35,8 @@ const Positions = (() => {
                     const q = searchQuery.toLowerCase();
                     const name = String(p.name || '').toLowerCase();
                     const tob = String(p.tob || '').toLowerCase();
-                    return name.includes(q) || tob.includes(q);
+                    const barcode = barcodeByTob[p.tob] || '';
+                    return name.includes(q) || tob.includes(q) || barcode.includes(q);
                 })
                 .sort((a, b) => {
                     const ea = String(Utils.effectiveExpiry(a) || '');
@@ -701,14 +710,15 @@ const Positions = (() => {
         } catch {
             try { JsBarcode(svg, value, { ...opts, format: 'CODE128' }); } catch { return; }
         }
-        const w = svg.getAttribute('width');
-        const h = svg.getAttribute('height');
-        if (w && h) {
-            svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
-            svg.setAttribute('preserveAspectRatio', 'none');
-            svg.removeAttribute('width');
-            svg.removeAttribute('height');
-        }
+        const w = parseFloat(svg.getAttribute('width')) || 300;
+        const h = parseFloat(svg.getAttribute('height')) || 70;
+        svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+        svg.setAttribute('preserveAspectRatio', 'none');
+        svg.removeAttribute('width');
+        svg.removeAttribute('height');
+        svg.style.display = 'block';
+        svg.style.width = '100%';
+        svg.style.height = '72px';
     }
 
     const openDetails = (id) => {

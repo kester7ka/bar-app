@@ -108,6 +108,12 @@ const Schedule = (() => {
     function normCode(s) {
         return String(s || '').toUpperCase().replace(/[^A-ZА-ЯЁ0-9]/g, '').replace('Ё', 'Е');
     }
+
+    function barCore(s) {
+        const n = normCode(s);
+        const m = n.match(/^АВ[А-Я]*\d*/);
+        return m ? m[0] : n;
+    }
     const MONTH_HEADERS = new Set([
         'ЯНВАРЬ', 'ФЕВРАЛЬ', 'МАРТ', 'АПРЕЛЬ', 'МАЙ', 'ИЮНЬ',
         'ИЮЛЬ', 'АВГУСТ', 'СЕНТЯБРЬ', 'ОКТЯБРЬ', 'НОЯБРЬ', 'ДЕКАБРЬ'
@@ -265,9 +271,9 @@ const Schedule = (() => {
     }
 
     function makeBar(rawHeader) {
-        
         const code = rawHeader
             .replace(/\(.*?\)/g, '')
+            .replace(/\s*-\s*/g, '-')
             .replace(/\s+/g, ' ')
             .trim();
         return { name: rawHeader, code, employees: [] };
@@ -375,8 +381,8 @@ const Schedule = (() => {
         BAR_SHORT_CODES = new Set();
         for (const m of months) {
             for (const b of m.bars) {
-                const full = normCode(b.code);             
-                const short = full.replace(/^АВ/, '');     
+                const full = barCore(b.code);
+                const short = full.replace(/^АВ/, '');
                 if (full) BAR_SHORT_CODES.add(full);
                 if (short && short.length >= 2) BAR_SHORT_CODES.add(short);
             }
@@ -578,11 +584,12 @@ const Schedule = (() => {
 
     
     function matchesBar(scheduleBar, userBar) {
-        const a = normCode(scheduleBar.code);
-        const b = normCode(userBar.code);
+        const a = barCore(scheduleBar.code);
+        const b = barCore(userBar.code);
+        if (a && b && a === b) return true;
         const bShort = normCode(userBar.short_code || '');
-        
-        return a === b || (bShort && (a.endsWith(bShort) || a.replace(/^АВ/, '') === bShort));
+        if (bShort && a && (a.replace(/^АВ/, '') === bShort || a.endsWith(bShort))) return true;
+        return false;
     }
 
     function collectDays(bar) {
@@ -619,12 +626,9 @@ const Schedule = (() => {
     }
 
     function formatName(full) {
-        const parts = full.trim().split(/\s+/);
-        if (parts.length < 2) return full;
-        
-        const surname = capitalize(parts[0]);
-        const initial = parts[1][0];
-        return `${surname} ${initial}.`;
+        const parts = full.trim().split(/\s+/).filter(Boolean);
+        if (parts.length < 2) return full.trim();
+        return `${capitalize(parts[0])} ${capitalize(parts[1])}`;
     }
 
     function capitalize(s) {
