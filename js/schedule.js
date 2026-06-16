@@ -232,7 +232,6 @@ const Schedule = (() => {
     }
 
     function guessNameCol(rows, headerRow, dayColStart) {
-        
         for (let r = Math.max(0, headerRow - 1); r <= headerRow + 1 && r < rows.length; r++) {
             const row = rows[r] || [];
             for (let c = 0; c < dayColStart; c++) {
@@ -240,26 +239,7 @@ const Schedule = (() => {
                 if (v.includes('ФИО') || v.includes('СОТРУДНИК')) return c;
             }
         }
-        
-        
-        const dataStart = headerRow + 1;
-        const scores = [];
-        for (let c = 0; c < dayColStart; c++) {
-            let score = 0;
-            for (let r = dataStart; r < Math.min(rows.length, dataStart + 12); r++) {
-                const v = String((rows[r] || [])[c] || '').trim();
-                if (!v) continue;
-                if (/^\d/.test(v)) continue;                  
-                if (/^[+()\d\s\-]+$/.test(v)) continue;       
-                if (looksLikeBarHeader(v)) continue;
-                const letters = v.replace(/[^A-Za-zА-Яа-яЁё]/g, '').length;
-                const hasSpace = /\s/.test(v);
-                score += letters + (hasSpace ? 8 : 0);
-            }
-            scores.push({ c, score });
-        }
-        scores.sort((a, b) => b.score - a.score);
-        return scores[0] && scores[0].score > 0 ? scores[0].c : Math.max(0, dayColStart - 2);
+        return dayColStart;
     }
 
     function findPhone(row) {

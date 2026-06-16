@@ -142,14 +142,14 @@
                 
                 <div class="news-card" id="news-card">
                     <div class="news-head">
-                        <span class="news-version">0.6.8</span>
+                        <span class="news-version">0.6.9</span>
                         <h3 class="news-title">Что нового</h3>
                     </div>
                     <ul class="news-list">
-                        <li><b>Новый сканер</b>: один на всё — штрихкод, QR и Честный Знак. Рамка сама притягивается к коду на айфоне и андроиде, есть фонарик, снимок и загрузка из фото.</li>
-                        <li>Обновили все иконки в приложении — теперь единый аккуратный стиль.</li>
-                        <li><b>Карточка позиции переделана</b>: наглядный статус сверху, штрихкод теперь рисуется прямо в карточке, данные Честного Знака — отдельным блоком.</li>
-                        <li><b>Статус сервисов</b> стал подробнее: все API списком, видно где «работает», «работает локально» или «работает частично».</li>
+                        <li><b>График</b>: исправлены имена сотрудников (показываются полностью) и подхватился новый формат таблицы с должностями.</li>
+                        <li><b>Найти по штрихкоду</b> — новая плитка в Инструментах: сканируешь код и сразу открывается нужная позиция.</li>
+                        <li><b>Календарь сроков переделан</b>: готовые сроки (12ч, 24ч, 3 дня…), наглядный результат с цветом по срочности и живой обратный отсчёт.</li>
+                        <li>Карточка позиции: штрихкод теперь растягивается на всю ширину.</li>
                     </ul>
                 </div>
             </div>
@@ -220,6 +220,10 @@
                     <button class="tool-tile" data-tool="scan">
                         <span class="tool-icon"><i class="ph ph-magnifying-glass"></i></span>
                         <span class="tool-name">Найти по TOB</span>
+                    </button>
+                    <button class="tool-tile" data-tool="findbarcode">
+                        <span class="tool-icon"><i class="ph ph-barcode"></i></span>
+                        <span class="tool-name">Найти по ШК</span>
                     </button>
                     <button class="tool-tile" data-tool="export">
                         <span class="tool-icon"><i class="ph ph-download-simple"></i></span>
@@ -638,7 +642,7 @@
                         <div class="about-logo">B</div>
                         <div>
                             <div class="about-title">Bar Manager</div>
-                            <div class="about-version">версия 0.6.8</div>
+                            <div class="about-version">версия 0.6.9</div>
                         </div>
                     </div>
 
@@ -955,19 +959,24 @@
                         </label>
                     </div>
                     <div class="cal-presets">
-                        <button type="button" class="cal-chip" data-add="0:1:0">+1 ч</button>
-                        <button type="button" class="cal-chip" data-add="0:6:0">+6 ч</button>
-                        <button type="button" class="cal-chip" data-add="0:12:0">+12 ч</button>
-                        <button type="button" class="cal-chip" data-add="1:0:0">+1 день</button>
-                        <button type="button" class="cal-chip" data-add="3:0:0">+3 дня</button>
-                        <button type="button" class="cal-chip" data-add="7:0:0">+7 дней</button>
+                        <button type="button" class="cal-chip" data-set="0:12:0">12 ч</button>
+                        <button type="button" class="cal-chip" data-set="1:0:0">24 ч</button>
+                        <button type="button" class="cal-chip" data-set="2:0:0">48 ч</button>
+                        <button type="button" class="cal-chip" data-set="3:0:0">3 дня</button>
+                        <button type="button" class="cal-chip" data-set="5:0:0">5 дней</button>
+                        <button type="button" class="cal-chip" data-set="7:0:0">7 дней</button>
+                        <button type="button" class="cal-chip" data-set="14:0:0">14 дней</button>
+                        <button type="button" class="cal-chip" data-set="30:0:0">30 дней</button>
                     </div>
                 </div>
 
-                <div class="cal-result" id="cal-result">
-                    <div class="cal-result-label">Истекает</div>
-                    <div class="cal-result-when" id="cal-result-when">—</div>
-                    <div class="cal-result-rel" id="cal-result-rel">введи дату и срок</div>
+                <div class="cal-result level-faded" id="cal-result">
+                    <span class="cal-result-ic" id="cal-result-ic"><i class="ph ph-clock-countdown"></i></span>
+                    <div class="cal-result-body">
+                        <div class="cal-result-label">Истекает</div>
+                        <div class="cal-result-when" id="cal-result-when">—</div>
+                        <div class="cal-result-rel" id="cal-result-rel">введи дату и срок</div>
+                    </div>
                 </div>
             </div>
         </div>

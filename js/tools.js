@@ -13,6 +13,8 @@ const Tools = (() => {
                 return Admin.open();
             case 'scan':
                 return promptTob();
+            case 'findbarcode':
+                return findByBarcode();
             case 'export':
                 return exportPdf();
             case 'cleanup':
@@ -32,6 +34,29 @@ const Tools = (() => {
         } else {
             Utils.toast('Позиция не найдена');
         }
+    };
+
+    const findByBarcode = () => {
+        if (typeof Scanner === 'undefined' || !Scanner.open) {
+            Utils.toast('Сканер недоступен');
+            return;
+        }
+        Scanner.open((code) => {
+            if (!code) return;
+            let tob = null;
+            try {
+                const map = JSON.parse(localStorage.getItem('bar-app:barcodes') || '{}');
+                if (map[code] && map[code].tob) tob = map[code].tob;
+            } catch {}
+            if (!tob && /^\d{6,7}$/.test(code)) tob = code;
+            const p = tob ? Storage.getByTob(tob) : null;
+            if (p) {
+                Nav.show('positions');
+                setTimeout(() => Positions.openDetails(p.id), 100);
+            } else {
+                Utils.toast('Позиция по этому штрихкоду не найдена');
+            }
+        });
     };
 
     function loadScript(src) {

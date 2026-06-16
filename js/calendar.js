@@ -10,18 +10,31 @@ const Calendar = (() => {
 
     const el = (id) => document.getElementById(id);
 
+    let tickTimer = null;
+    let endTime = null;
+
     function open() {
         el('calendar-overlay').classList.add('show');
-        
         if (!el('cal-start').value) {
             el('cal-start').value = Utils.localISO(new Date());
             el('cal-days').value = 1;
         }
         compute();
+        startTick();
     }
 
     function close() {
         el('calendar-overlay').classList.remove('show');
+        stopTick();
+    }
+
+    function startTick() {
+        stopTick();
+        tickTimer = setInterval(renderRelative, 1000);
+    }
+
+    function stopTick() {
+        if (tickTimer) { clearInterval(tickTimer); tickTimer = null; }
     }
 
     function reset() {
@@ -32,8 +45,6 @@ const Calendar = (() => {
         compute();
     }
 
-    
-
     function setStart(kind) {
         const d = new Date();
         if (kind === '-1h') d.setHours(d.getHours() - 1);
@@ -43,25 +54,20 @@ const Calendar = (() => {
         compute();
     }
 
-    
-    function addPreset(spec) {
+    function setDuration(spec) {
         const [d, h, m] = spec.split(':').map(n => Number(n) || 0);
-        const days = clamp(num(el('cal-days').value) + d, 0, 99999);
-        const hours = num(el('cal-hours').value) + h;
-        const mins  = num(el('cal-mins').value)  + m;
-        
-        const totalMin = days * 24 * 60 + hours * 60 + mins;
-        const nd = Math.floor(totalMin / (24 * 60));
-        const rest = totalMin % (24 * 60);
-        const nh = Math.floor(rest / 60);
-        const nm = rest % 60;
-        el('cal-days').value = nd;
-        el('cal-hours').value = nh;
-        el('cal-mins').value = nm;
+        el('cal-days').value = d;
+        el('cal-hours').value = h;
+        el('cal-mins').value = m;
+        markActiveChip(spec);
         compute();
     }
 
-    
+    function markActiveChip(spec) {
+        document.querySelectorAll('#calendar-overlay .cal-chip[data-set]').forEach(b => {
+            b.classList.toggle('active', b.dataset.set === spec);
+        });
+    }
 
     function compute() {
         const startStr = el('cal-start').value;
@@ -71,42 +77,54 @@ const Calendar = (() => {
         el('cal-hours').value = hours;
         el('cal-mins').value  = mins;
 
-        const result = el('cal-result');
         const when = el('cal-result-when');
         const rel  = el('cal-result-rel');
 
         if (!startStr) {
-            result.classList.remove('expired');
-            result.classList.add('faded');
+            endTime = null;
+            setLevel('faded', 'clock-countdown');
             when.textContent = '—';
-            rel.textContent  = 'введи дату и срок';
+            rel.textContent = 'введи дату и срок';
             return;
         }
-
         const start = new Date(startStr);
         if (isNaN(start)) {
-            result.classList.add('faded');
+            endTime = null;
+            setLevel('faded', 'warning');
             when.textContent = 'неверная дата';
-            rel.textContent  = '';
+            rel.textContent = '';
             return;
         }
-
         const ms = ((days * 24 + hours) * 60 + mins) * 60 * 1000;
         if (ms === 0) {
-            result.classList.add('faded');
+            endTime = null;
+            setLevel('faded', 'clock-countdown');
             when.textContent = 'укажи срок';
-            rel.textContent  = '';
+            rel.textContent = '';
             return;
         }
-
         const end = new Date(start.getTime() + ms);
-        result.classList.remove('faded');
-
+        endTime = end.getTime();
         when.textContent = formatWhen(end);
+        renderRelative();
+    }
 
-        const diff = end.getTime() - Date.now();
-        result.classList.toggle('expired', diff < 0);
-        rel.textContent = relative(diff) + ' · ' + WEEKDAYS[end.getDay()];
+    function renderRelative() {
+        if (endTime == null) return;
+        const diff = endTime - Date.now();
+        const day = 24 * 3600 * 1000;
+        const level = diff < 0 ? 'expired' : (diff < day ? 'soon' : 'ok');
+        const icon = diff < 0 ? 'warning-octagon' : (diff < day ? 'warning' : 'seal-check');
+        setLevel(level, icon);
+        const d = new Date(endTime);
+        el('cal-result-rel').textContent = relative(diff) + ' · ' + WEEKDAYS[d.getDay()];
+    }
+
+    function setLevel(level, icon) {
+        const r = el('cal-result');
+        if (r) r.className = 'cal-result level-' + level;
+        const ic = el('cal-result-ic');
+        if (ic) ic.innerHTML = `<i class="ph ph-${icon}"></i>`;
     }
 
     function formatWhen(d) {
@@ -119,14 +137,23 @@ const Calendar = (() => {
         let s = Math.floor(Math.abs(ms) / 1000);
         const d = Math.floor(s / 86400); s -= d * 86400;
         const h = Math.floor(s / 3600);  s -= h * 3600;
-        const m = Math.floor(s / 60);
-        const parts = [];
-        if (d) parts.push(`${d} ${plural(d, 'день', 'дня', 'дней')}`);
-        if (h) parts.push(`${h} ${plural(h, 'час', 'часа', 'часов')}`);
-        if (m && !d) parts.push(`${m} ${plural(m, 'минута', 'минуты', 'минут')}`);
-        if (parts.length === 0) parts.push('меньше минуты');
-        return (past ? 'прошло ' : 'через ') + parts.join(' ');
+        const m = Math.floor(s / 60);    s -= m * 60;
+        const prefix = past ? 'прошло ' : 'через ';
+        if (d >= 1) {
+            const parts = [`${d} ${plural(d, 'день', 'дня', 'дней')}`];
+            if (h) parts.push(`${h} ч`);
+            return prefix + parts.join(' ');
+        }
+        if (h >= 1) {
+            return prefix + `${h} ч ${m} мин`;
+        }
+        if (m >= 1) {
+            return prefix + `${m} мин ${pad2(s)} с`;
+        }
+        return prefix + `${s} с`;
     }
+
+    function pad2(n) { return String(n).padStart(2, '0'); }
 
     function plural(n, one, few, many) {
         n = Math.abs(n) % 100;
@@ -140,22 +167,20 @@ const Calendar = (() => {
     function num(v) { return Math.max(0, Math.floor(Number(v) || 0)); }
     function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 
-    
     function init() {
         el('calendar-close').addEventListener('click', close);
         el('calendar-reset').addEventListener('click', reset);
 
-        
         ['cal-start', 'cal-days', 'cal-hours', 'cal-mins'].forEach(id => {
-            el(id).addEventListener('input', compute);
+            el(id).addEventListener('input', () => { markActiveChip(null); compute(); });
             el(id).addEventListener('change', compute);
         });
 
         document.querySelectorAll('[data-start]').forEach(b => {
             b.addEventListener('click', () => setStart(b.dataset.start));
         });
-        document.querySelectorAll('[data-add]').forEach(b => {
-            b.addEventListener('click', () => addPreset(b.dataset.add));
+        document.querySelectorAll('[data-set]').forEach(b => {
+            b.addEventListener('click', () => setDuration(b.dataset.set));
         });
     }
 
